@@ -26,7 +26,7 @@ npm run preview
 
 - A dedicated course workspace with a guided next-course prompt and progress bar.
 - Search by course code, title, or instructor.
-- Readable section cards with meeting times, faculty, selection state, and priority.
+- Compact section tiles showing the section and faculty names. Meeting times and priority are managed in the section editor.
 - Conflict filtering with hidden-option counts. Showing conflicts lets you replace overlapping selections with an explicit explanation.
 - Inline section creation and editing, including multiple meeting days.
 - Drag-to-reorder with accessible arrow buttons for keyboard and touch use.
@@ -66,4 +66,24 @@ The demo course library comes from the supplied ZIP. It is not official universi
 - `tests/workspace.test.ts`: behavior tests using Node's built-in test runner.
 - `docs/redesign-plan.md`: product structure and design decisions.
 
-The original `course-section-planner.zip` remains unchanged. Earlier implementations remain recoverable under `backups/`. The supplied project's Apache-2.0 source attribution is retained.
+Local recovery files stay under `backups/` and are excluded from GitHub. The original export is preserved in `backups/original/course-section-planner.zip`; earlier implementations and unused legacy assets are kept alongside it.
+
+## Folder layout
+
+```text
+SectionSync/
+├── src/                 Application code and styles
+│   ├── components/      Planner, Routine, dialogs, and section editor
+│   ├── hooks/           Browser storage and workspace state
+│   └── lib/             Schedule validation, conflicts, and backups
+├── tests/               Workspace behavior tests
+├── docs/                Setup guide and design notes
+├── backups/             Local-only original export and recovery snapshots
+├── dist/                Generated production build (ignored)
+├── node_modules/        Installed dependencies (ignored)
+└── README.md            Project overview and quick start
+```
+
+Repository: https://github.com/jayediqbalasif/SectionSync
+
+To save future changes after cloning the repository, use a Git client to commit and push to `main`. The local `backups/`, dependencies, build files, and browser workspace data are not part of the repository.

@@ -1,11 +1,5 @@
 # Local setup
 
-Run `npm install`, then `npm run dev` from this folder.
+See [docs/local-setup.md](docs/local-setup.md) for setup instructions.
 
-Open http://localhost:3000/#/planner . Routine is at http://localhost:3000/#/routine .
-
-Use localhost consistently for this workspace; 127.0.0.1 has separate browser storage and may retain the earlier experimental app's offline cache.
-
-Checks: `npm test`, `npm run lint`, and `npm run build`.
-
-The original ZIP remains untouched. Earlier code is preserved under `backups/`.
+Quick start: `npm install`, then `npm run dev`.

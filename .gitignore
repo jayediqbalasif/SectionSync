@@ -9,3 +9,6 @@ coverage/
 
 # Local recovery snapshots
 backups/
+
+# Original downloaded exports
+course-section-planner.zip
