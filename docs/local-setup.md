@@ -8,4 +8,3 @@ Use localhost consistently for this workspace; 127.0.0.1 has separate browser st
 
 Checks: `npm test`, `npm run lint`, and `npm run build`.
 
-The original ZIP remains untouched. The original export is at `backups/original/course-section-planner.zip`; earlier code is preserved under `backups/`.

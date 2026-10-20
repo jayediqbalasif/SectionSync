@@ -66,8 +66,6 @@ The demo course library comes from the supplied ZIP. It is not official universi
 - `tests/workspace.test.ts`: behavior tests using Node's built-in test runner.
 - `docs/redesign-plan.md`: product structure and design decisions.
 
-Local recovery files stay under `backups/` and are excluded from GitHub. The original export is preserved in `backups/original/course-section-planner.zip`; earlier implementations and unused legacy assets are kept alongside it.
-
 ## Folder layout
 
 ```text
@@ -78,7 +76,6 @@ SectionSync/
 │   └── lib/             Schedule validation, conflicts, and backups
 ├── tests/               Workspace behavior tests
 ├── docs/                Setup guide and design notes
-├── backups/             Local-only original export and recovery snapshots
 ├── dist/                Generated production build (ignored)
 ├── node_modules/        Installed dependencies (ignored)
 └── README.md            Project overview and quick start
@@ -86,4 +83,4 @@ SectionSync/
 
 Repository: https://github.com/jayediqbalasif/SectionSync
 
-To save future changes after cloning the repository, use a Git client to commit and push to `main`. The local `backups/`, dependencies, build files, and browser workspace data are not part of the repository.
+To save future changes after cloning the repository, use a Git client to commit and push to `main`. Installed dependencies, generated build files, and browser workspace data are not part of the repository.
