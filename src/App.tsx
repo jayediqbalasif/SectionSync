@@ -3,18 +3,15 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Layers,
   LayoutGrid,
-  CalendarDays,
   ArrowUpRight,
   Plus,
   Download,
   Upload,
   Bookmark,
-  Menu,
   X,
   Undo2,
   Check,
   HardDrive,
-  ChevronRight,
   ArrowRight,
 } from 'lucide-react';
 import { Course, Section, SavedPlan } from './types';
@@ -38,7 +35,6 @@ const route = (): Page => (location.hash.startsWith('#/routine') ? 'routine' : '
 export default function App() {
   const { data: w, error, saved, undo, change, replace, save, undoChange } = useWorkspace();
   const [page, setPage] = useState<Page>(route),
-    [navOpen, setNavOpen] = useState(false),
     [courseEdit, setCourseEdit] = useState<Course | 'new' | null>(null),
     [saveOpen, setSaveOpen] = useState(false),
     [help, setHelp] = useState(false),
@@ -62,13 +58,11 @@ export default function App() {
   function navigate(p: Page) {
     location.hash = `/${p}`;
     setPage(p);
-    setNavOpen(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
   useEffect(() => {
     const f = () => {
       setPage(route());
-      setNavOpen(false);
       window.scrollTo({ top: 0, behavior: 'instant' });
     };
     window.addEventListener('hashchange', f);
@@ -176,108 +170,72 @@ export default function App() {
       <a href="#main" className="skip-link">
         Skip to content
       </a>
-      <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
-        <a className="brand" href="#/planner" onClick={() => navigate('planner')}>
+      <header className="site-header">
+        <a
+          className="brand"
+          href="#/planner"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate('planner');
+          }}
+        >
           <span className="brand-symbol">
             <Layers size={19} strokeWidth={1.7} />
           </span>
           SectionSync<span className="brand-period">.</span>
         </a>
-        <div className="sidebar-section-label">WORKSPACE</div>
-        <nav aria-label="Main navigation">
-          <a
-            href="#/planner"
-            className={page === 'planner' ? 'active' : ''}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('planner');
-            }}
-          >
-            <LayoutGrid size={17} />
-            <span>Planner</span>
-            <span className="nav-shortcut">[ 01 ]</span>
-          </a>
-          <a
-            href="#/routine"
-            className={page === 'routine' ? 'active' : ''}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('routine');
-            }}
-          >
-            <CalendarDays size={17} />
-            <span>Routine</span>
-            <span className="nav-shortcut">[ 02 ]</span>
-          </a>
+        <nav className="header-nav" aria-label="Main navigation">
+          {(['planner', 'routine'] as Page[]).map((item, index) => (
+            <a
+              key={item}
+              href={`#/${item}`}
+              aria-current={page === item ? 'page' : undefined}
+              className={page === item ? 'active' : ''}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(item);
+              }}
+            >
+              <span>[ 0{index + 1} ]</span> {item === 'planner' ? 'Planner' : 'Routine'}
+            </a>
+          ))}
         </nav>
-        <div className="sidebar-divider" />
-        <div className="sidebar-section-label">COURSE LIBRARY</div>
-        <div className="library-label">
-          <span className="library-icon">
-            <LayoutGrid size={16} />
-          </span>
-          <div>
-            <strong>My semester</strong>
-            <span>
-              {w.courses.length} courses · {w.courses.reduce((n, c) => n + c.sections.length, 0)}{' '}
-              sections
-            </span>
-          </div>
-        </div>
-        <button className="sidebar-link" onClick={() => file.current?.click()}>
-          <Upload size={14} /> Import backup <ArrowUpRight size={11} />
-        </button>
-        <div className="sidebar-bottom">
-          <div className="device-label">
+        <div className="header-tools">
+          <span className="header-status" role="status">
             <span className={`status-dot ${saved ? '' : 'unsaved'}`} />
-            {saved ? 'Saved on this device' : 'Changes not saved'}
-          </div>
-          <p>Your workspace stays in this browser.</p>
-          <button className="sidebar-link" onClick={() => setHelp(true)}>
-            <HardDrive size={14} /> Storage & backups <ArrowUpRight size={11} />
+            {saved ? 'Saved on this device' : 'Save failed'}
+          </span>
+          <button
+            className="icon-button"
+            disabled={!undo}
+            onClick={undoChange}
+            aria-label="Undo last change"
+            title="Undo last change"
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            className="icon-button"
+            onClick={() => file.current?.click()}
+            aria-label="Import backup"
+            title="Import backup"
+          >
+            <Upload size={16} />
+          </button>
+          <button
+            className="icon-button"
+            onClick={() => setHelp(true)}
+            aria-label="Storage & backups"
+            title="Storage & backups"
+          >
+            <HardDrive size={16} />
+          </button>
+          <button className="button small" onClick={() => setSaveOpen(true)}>
+            <Bookmark size={14} /> Save plan
           </button>
         </div>
-      </aside>
-      {navOpen && (
-        <button
-          className="nav-scrim"
-          aria-label="Close navigation"
-          onClick={() => setNavOpen(false)}
-        />
-      )}
+      </header>
       <div className="main-shell">
-        <header className="topbar">
-          <div className="row">
-            <button
-              className="icon-button mobile-only"
-              aria-label="Open navigation"
-              onClick={() => setNavOpen(true)}
-            >
-              <Menu size={19} />
-            </button>
-            <span className="breadcrumb">
-              Workspace <ChevronRight size={12} />{' '}
-              <strong>{page === 'planner' ? 'Planner' : 'Routine'}</strong>
-            </span>
-          </div>
-          <div className="row topbar-actions">
-            <span className="save-status">
-              <span className={`status-dot ${saved ? '' : 'unsaved'}`} />
-              {saved ? 'All changes saved' : 'Save failed'}
-            </span>
-            <button
-              className="icon-button"
-              disabled={!undo}
-              onClick={undoChange}
-              aria-label="Undo last change"
-            >
-              <Undo2 size={16} />
-            </button>
-            <button className="button small" onClick={() => setSaveOpen(true)}>
-              <Bookmark size={14} /> Save plan
-            </button>
-          </div>
-        </header>
         <main id="main">
           {error && (
             <div role="alert" className="notice error">
