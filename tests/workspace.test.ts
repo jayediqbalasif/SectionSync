@@ -13,7 +13,7 @@ import { Course, Section, sectionsConflict } from '../src/types';
 const section = (id: string, start = '09:00', end = '10:00'): Section => ({
   id,
   name: id,
-  faculty: 'Instructor',
+  faculty: 'Faculty',
   preferenceOrder: 1,
   timeSlots: [{ day: 'Monday', startTime: start, endTime: end }],
 });

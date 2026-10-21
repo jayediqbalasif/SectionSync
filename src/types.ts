@@ -20,6 +20,7 @@ export interface TimeSlot {
   day: DayOfWeek;
   startTime: string; // "HH:MM" (24-hour, e.g., "09:30")
   endTime: string; // "HH:MM" (24-hour, e.g., "11:00")
+  room?: string;
 }
 
 export interface Section {
@@ -28,6 +29,12 @@ export interface Section {
   faculty: string; // e.g., "Dr. John Doe"
   timeSlots: TimeSlot[];
   preferenceOrder: number; // 1 = Highest, 2 = Second, etc.
+  facultyInitial?: string;
+  catalogOfferingId?: string;
+  sourceSerial?: number;
+  sourcePage?: number;
+  status?: 'offered' | 'if-required' | 'tba' | 'customized';
+  note?: string;
 }
 
 export interface Course {
@@ -38,6 +45,8 @@ export interface Course {
   title: string; // e.g., "Introduction to Computer Science"
   color: string; // Hex or Tailwind color class (e.g., "emerald")
   sections: Section[];
+  catalogId?: string;
+  program?: string;
 }
 
 /**

@@ -111,10 +111,10 @@ export function PlannerPage({
             <div className="search">
               <Search size={16} />
               <input
-                aria-label="Search courses or instructors"
+                aria-label="Search courses or faculty"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search courses or instructors…"
+                placeholder="Search courses or faculty…"
               />
             </div>
             <button
@@ -230,7 +230,7 @@ export function PlannerPage({
                               <span className="section-title">
                                 <strong>{label(s)}</strong>
                               </span>
-                              <span className="instructor" title={s.faculty}>
+                              <span className="faculty" title={s.faculty}>
                                 {s.faculty}
                               </span>
                             </button>
@@ -289,6 +289,7 @@ export function PlannerPage({
                       <SectionEditor
                         key={editing.section?.id || 'new'}
                         section={editing.section}
+                        courseCode={c.code}
                         kind={c.kind}
                         count={c.sections.length}
                         onCancel={() => setEditing(null)}
@@ -307,7 +308,7 @@ export function PlannerPage({
                 <h2>{w.courses.length ? 'No matching courses.' : 'Start with a course.'}</h2>
                 <p>
                   {w.courses.length
-                    ? 'Try another course code or instructor.'
+                    ? 'Try another course code or faculty name.'
                     : 'Add a course, then give it a few section options.'}
                 </p>
                 <button className="button" onClick={() => onEditCourse()}>

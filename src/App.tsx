@@ -34,17 +34,16 @@ import { RoutinePage } from './components/RoutinePage';
 import { HomePage } from './components/HomePage';
 import { FaqPage } from './components/FaqPage';
 import { Dialog } from './components/Dialog';
+import {
+  COURSE_CATALOG,
+  findCatalogCourse,
+  suggestCatalogCourses,
+} from './lib/catalog';
 
 type Page = 'home' | 'planner' | 'routine' | 'faq';
 type Theme = 'light' | 'dark';
 
-function ImportTrayIcon({
-  size = 16,
-  strokeWidth = 1.8,
-}: {
-  size?: number;
-  strokeWidth?: number;
-}) {
+function ImportTrayIcon({ size = 16, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -150,14 +149,18 @@ export default function App() {
   }, []);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
-      const isInput = activeTag === 'input' || activeTag === 'textarea';
+      const active = document.activeElement as HTMLElement | null;
+      const isInput = !!active?.closest(
+        'input, textarea, select, [contenteditable]:not([contenteditable="false"])',
+      );
+      const key = e.key.toLowerCase();
+      if (e.isComposing) return;
 
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      if ((e.metaKey || e.ctrlKey) && key === 's') {
         e.preventDefault();
         save();
         notify('Workspace saved on this device.');
-      } else if (!isInput && (e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+      } else if (!isInput && (e.metaKey || e.ctrlKey) && key === 'z' && !e.shiftKey) {
         e.preventDefault();
         if (undo) {
           undoChange();
@@ -165,7 +168,8 @@ export default function App() {
         }
       } else if (
         !isInput &&
-        ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey)))
+        (e.metaKey || e.ctrlKey) &&
+        (key === 'y' || (key === 'z' && e.shiftKey))
       ) {
         e.preventDefault();
         if (redo) {
@@ -665,9 +669,24 @@ function CourseDialog({
 }) {
   const [code, setCode] = useState(course?.code || ''),
     [title, setTitle] = useState(course?.title || ''),
-    [credits, setCredits] = useState(course?.credits ?? 3),
+    [credits, setCredits] = useState(course?.credits === undefined ? '' : String(course.credits)),
     [kind, setKind] = useState(course?.kind || 'theory'),
     [error, setError] = useState('');
+  const catalogMatch = findCatalogCourse(code);
+  const suggestions = suggestCatalogCourses(code);
+  const updateCode = (value: string) => {
+    setCode(value);
+    const match = findCatalogCourse(value);
+    if (match) {
+      setTitle(match.title);
+      setCredits(String(match.credits));
+      setKind(match.kind);
+    } else if (!course) {
+      setTitle('');
+      setCredits('');
+      setKind('theory');
+    }
+  };
   return (
     <Dialog title={course ? 'Edit course' : 'New course'} onClose={onClose}>
       <form
@@ -680,10 +699,12 @@ function CourseDialog({
                   id: course?.id || crypto.randomUUID(),
                   code: code.trim().toUpperCase(),
                   title: title.trim(),
-                  credits,
+                  credits: Number(credits),
                   kind,
                   color: course?.color || 'indigo',
                   sections: course?.sections || [],
+                  catalogId: catalogMatch?.catalogId,
+                  program: catalogMatch?.program,
                 },
               ])[0],
             );
@@ -700,9 +721,24 @@ function CourseDialog({
               required
               maxLength={40}
               placeholder="CSE 2217"
+              list="fall-2026-course-codes"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => updateCode(e.target.value)}
             />
+            <datalist id="fall-2026-course-codes">
+              {suggestions.map((item) => (
+                <option key={item.id} value={item.code}>
+                  {item.title}
+                </option>
+              ))}
+            </datalist>
+            <span className={`field-hint ${catalogMatch ? 'matched' : ''}`}>
+              {catalogMatch
+                ? `${COURSE_CATALOG.label} catalog · ${catalogMatch.sections.length} sections`
+                : code.trim()
+                  ? 'Not in the catalog · this will be a custom course'
+                  : `Search ${COURSE_CATALOG.label} by course code`}
+            </span>
           </label>
           <label>
             Credits
@@ -713,7 +749,8 @@ function CourseDialog({
               max="12"
               step="0.5"
               value={credits}
-              onChange={(e) => setCredits(Number(e.target.value))}
+              placeholder="Credits"
+              onChange={(e) => setCredits(e.target.value)}
             />
           </label>
         </div>

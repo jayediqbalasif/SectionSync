@@ -25,7 +25,7 @@ npm run preview
 ## Planner
 
 - A dedicated course workspace with a guided next-course prompt and progress bar.
-- Search by course code, title, or instructor.
+- Search by course code, title, or faculty.
 - Compact section tiles showing the section and faculty names. Meeting times and priority are managed in the section editor.
 - Conflict filtering with hidden-option counts. Showing conflicts lets you replace overlapping selections with an explicit explanation.
 - Inline section creation and editing, including multiple meeting days.
@@ -53,6 +53,12 @@ Clearing site data, private browsing, browser eviction, or device loss can remov
 
 The demo course library comes from the supplied ZIP. It is not official university semester data. Older courses do not include credits, so they initially default to 3; edit them to match actual university values. The fabricated syllabus, accreditation statements, mock server status, and misleading efficiency score from the original UI have been removed.
 
+## Official course catalog
+
+The planner includes the Fall 2026 BSCSE catalog generated from the supplied UIU faculty routine. Entering an exact course code fills its title, credits, and theory/lab type while keeping those fields editable. Section and faculty suggestions come from the same catalog; an exact official match also fills its published days and time. Custom courses and sections use the same forms when no catalog match exists.
+
+The import is repeatable for future trimesters. See `catalogs/README.md` for the command, file layout, validation report, and review steps.
+
 ## Project
 
 - `src/App.tsx`: two-page shell, routes, dialogs, and user actions.
@@ -62,6 +68,10 @@ The demo course library comes from the supplied ZIP. It is not official universi
 - `src/components/Dialog.tsx`: accessible native modal.
 - `src/hooks/useWorkspace.ts`: local persistence, migration, and Undo.
 - `src/lib/workspace.ts`: validation, backups, conflicts, priorities, and statistics.
+- `src/lib/catalog.ts`: active trimester catalog lookup and suggestions.
+- `src/data/catalogs/`: generated catalog data used by the planner.
+- `scripts/catalog/`: reusable PDF importer and its dependencies.
+- `catalogs/reports/`: generated import validation reports.
 - `src/types.ts`: original domain types, extended with editable credit/type fields.
 - `tests/workspace.test.ts`: behavior tests using Node's built-in test runner.
 - `docs/redesign-plan.md`: product structure and design decisions.

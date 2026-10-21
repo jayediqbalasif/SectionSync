@@ -1,0 +1,160 @@
+{
+  "catalogId": "fall-2026-bscse",
+  "generatedAt": "2026-10-21T15:59:29.776179+00:00",
+  "sourceRows": 791,
+  "programRows": 723,
+  "courseCount": 73,
+  "sectionCount": 723,
+  "serialRange": [
+    1,
+    723
+  ],
+  "flags": [
+    {
+      "serial": 16,
+      "code": "BDS 1201",
+      "section": "AE",
+      "issue": "if-required"
+    },
+    {
+      "serial": 56,
+      "code": "CSE 1111",
+      "section": "F",
+      "issue": "if-required"
+    },
+    {
+      "serial": 143,
+      "code": "CSE 2213",
+      "section": "AK",
+      "issue": "if-required"
+    },
+    {
+      "serial": 145,
+      "code": "CSE 2213",
+      "section": "AE",
+      "issue": "if-required"
+    },
+    {
+      "serial": 148,
+      "code": "CSE 2213",
+      "section": "AH",
+      "issue": "if-required"
+    },
+    {
+      "serial": 152,
+      "code": "CSE 2213",
+      "section": "Z",
+      "issue": "if-required"
+    },
+    {
+      "serial": 171,
+      "code": "CSE 2213",
+      "section": "I",
+      "issue": "tba"
+    },
+    {
+      "serial": 239,
+      "code": "CSE 3313",
+      "section": "F",
+      "issue": "tba"
+    },
+    {
+      "serial": 244,
+      "code": "CSE 3313",
+      "section": "K",
+      "issue": "tba"
+    },
+    {
+      "serial": 245,
+      "code": "CSE 3313",
+      "section": "L",
+      "issue": "tba"
+    },
+    {
+      "serial": 253,
+      "code": "CSE 3411",
+      "section": "N",
+      "issue": "tba"
+    },
+    {
+      "serial": 288,
+      "code": "CSE 3422",
+      "section": "B",
+      "issue": "tba"
+    },
+    {
+      "serial": 529,
+      "code": "EEE 2113",
+      "section": "K",
+      "issue": "tba"
+    },
+    {
+      "serial": 570,
+      "code": "ENG 1011",
+      "section": "AN",
+      "issue": "tba"
+    },
+    {
+      "serial": 581,
+      "code": "ENG 1011",
+      "section": "AM",
+      "issue": "tba"
+    },
+    {
+      "serial": 582,
+      "code": "ENG 1013",
+      "section": "AA",
+      "issue": "tba"
+    },
+    {
+      "serial": 585,
+      "code": "ENG 1013",
+      "section": "AD",
+      "issue": "tba"
+    },
+    {
+      "serial": 587,
+      "code": "ENG 1013",
+      "section": "AF",
+      "issue": "tba"
+    },
+    {
+      "serial": 590,
+      "code": "ENG 1013",
+      "section": "AN",
+      "issue": "tba"
+    },
+    {
+      "serial": 591,
+      "code": "ENG 1013",
+      "section": "AO",
+      "issue": "tba"
+    },
+    {
+      "serial": 595,
+      "code": "ENG 1013",
+      "section": "AG",
+      "issue": "tba"
+    },
+    {
+      "serial": 598,
+      "code": "ENG 1013",
+      "section": "AJ",
+      "issue": "tba"
+    },
+    {
+      "serial": 716,
+      "code": "SOC 2101",
+      "section": "D",
+      "issue": "tba"
+    },
+    {
+      "serial": 717,
+      "code": "SOC 2101",
+      "section": "E",
+      "issue": "tba"
+    }
+  ],
+  "populatedPages": 27,
+  "pdfPageCount": 54
+}

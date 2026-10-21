@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useReducer } from 'react';
 import { SAMPLE_COURSES } from '../sampleData';
 import { Workspace, decodeBackup, validateCourses, validSelections } from '../lib/workspace';
+import { historyReducer, History, HistoryAction } from '../lib/history';
 const KEY = 'sectionsync.workspace.v2';
 function load(): { data: Workspace; error: string } {
   try {
@@ -43,15 +44,16 @@ function load(): { data: Workspace; error: string } {
     };
   }
 }
-const MAX_HISTORY = 5;
-
 export function useWorkspace() {
-  const [initial] = useState(load),
-    [data, setData] = useState(initial.data),
-    [error, setError] = useState(initial.error),
-    [saved, setSaved] = useState(!initial.error),
-    [undoStack, setUndoStack] = useState<Workspace[]>([]),
-    [redoStack, setRedoStack] = useState<Workspace[]>([]);
+  const [initial] = useState(load);
+  const [history, dispatch] = useReducer(historyReducer<Workspace>, {
+    present: initial.data,
+    past: [],
+    future: [],
+  });
+  const [error, setError] = useState(initial.error);
+  const [saved, setSaved] = useState(!initial.error);
+  const stateRef = useRef<History<Workspace>>(history);
   const dirty = useRef(false);
   function persist(next: Workspace) {
     try {
@@ -63,84 +65,43 @@ export function useWorkspace() {
       setError('Your browser could not save changes. Download a backup before closing this page.');
     }
   }
-  const stateRef = useRef(data);
-  stateRef.current = data;
-  function change(fn: (w: Workspace) => void) {
-    const current = stateRef.current,
-      next = structuredClone(current);
-    fn(next);
-    validateCourses(next.courses);
-    validSelections(next.courses, next.selectedSections);
-    next.updatedAt = new Date().toISOString();
-    setUndoStack((prev) => [...prev.slice(-(MAX_HISTORY - 1)), structuredClone(current)]);
-    setRedoStack([]);
+  function apply(action: HistoryAction<Workspace>) {
+    const next = historyReducer(stateRef.current, action);
+    if (next === stateRef.current) return;
+    stateRef.current = next;
     dirty.current = true;
     setSaved(false);
-    stateRef.current = next;
-    setData(next);
+    dispatch(action);
   }
-
-  function undoChange() {
-    setUndoStack((prevUndo) => {
-      if (prevUndo.length === 0) return prevUndo;
-      const previous = prevUndo[prevUndo.length - 1];
-      const remainingUndo = prevUndo.slice(0, -1);
-      const current = stateRef.current;
-      setRedoStack((prevRedo) => [
-        ...prevRedo.slice(-(MAX_HISTORY - 1)),
-        structuredClone(current),
-      ]);
-      stateRef.current = previous;
-      setData(previous);
-      persist(previous);
-      return remainingUndo;
-    });
+  function replace(next: Workspace) {
+    const snapshot = structuredClone(next);
+    snapshot.courses = validateCourses(snapshot.courses);
+    snapshot.selectedSections = validSelections(snapshot.courses, snapshot.selectedSections);
+    snapshot.updatedAt = new Date().toISOString();
+    apply({ type: 'change', next: snapshot });
   }
-
-  function redoChange() {
-    setRedoStack((prevRedo) => {
-      if (prevRedo.length === 0) return prevRedo;
-      const next = prevRedo[prevRedo.length - 1];
-      const remainingRedo = prevRedo.slice(0, -1);
-      const current = stateRef.current;
-      setUndoStack((prevUndo) => [
-        ...prevUndo.slice(-(MAX_HISTORY - 1)),
-        structuredClone(current),
-      ]);
-      stateRef.current = next;
-      setData(next);
-      persist(next);
-      return remainingRedo;
-    });
-  }
-
   useEffect(() => {
     if (dirty.current) {
-      persist(data);
+      persist(history.present);
       dirty.current = false;
     }
-  }, [data]);
+  }, [history]);
   return {
-    data,
+    data: history.present,
     error,
     saved,
-    undo: undoStack.length > 0,
-    redo: redoStack.length > 0,
-    undoCount: undoStack.length,
-    redoCount: redoStack.length,
-    change,
-    save: () => persist(data),
-    undoChange,
-    redoChange,
-    replace: (next: Workspace) => {
-      setUndoStack((prev) => [
-        ...prev.slice(-(MAX_HISTORY - 1)),
-        structuredClone(stateRef.current),
-      ]);
-      setRedoStack([]);
-      stateRef.current = next;
-      setData(next);
-      persist(next);
+    undo: history.past.length > 0,
+    redo: history.future.length > 0,
+    undoCount: history.past.length,
+    redoCount: history.future.length,
+    change: (fn: (w: Workspace) => void) => {
+      const next = structuredClone(stateRef.current.present);
+      fn(next);
+      replace(next);
     },
+    replace,
+    save: () => persist(stateRef.current.present),
+    undoChange: () => apply({ type: 'undo' }),
+    redoChange: () => apply({ type: 'redo' }),
   };
 }

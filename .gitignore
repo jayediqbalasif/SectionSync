@@ -12,3 +12,10 @@ backups/
 
 # Original downloaded exports
 course-section-planner.zip
+
+# Source university routine PDFs can be large and may be replaced each trimester
+catalogs/sources/*.pdf
+
+# Python importer cache
+__pycache__/
+*.pyc
