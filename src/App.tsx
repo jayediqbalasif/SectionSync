@@ -29,9 +29,16 @@ import {
 } from './lib/workspace';
 import { PlannerPage } from './components/PlannerPage';
 import { RoutinePage } from './components/RoutinePage';
+import { HomePage } from './components/HomePage';
 import { Dialog } from './components/Dialog';
-type Page = 'planner' | 'routine';
-const route = (): Page => (location.hash.startsWith('#/routine') ? 'routine' : 'planner');
+type Page = 'home' | 'planner' | 'routine' | 'faq';
+const route = (): Page => {
+  const path = location.hash;
+  if (path.startsWith('#/planner')) return 'planner';
+  if (path.startsWith('#/routine')) return 'routine';
+  if (path.startsWith('#/faq')) return 'faq';
+  return 'home';
+};
 export default function App() {
   const { data: w, error, saved, undo, change, replace, save, undoChange } = useWorkspace();
   const [page, setPage] = useState<Page>(route),
@@ -58,12 +65,20 @@ export default function App() {
   function navigate(p: Page) {
     location.hash = `/${p}`;
     setPage(p);
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (p === 'faq')
+      requestAnimationFrame(() =>
+        document.getElementById('faq')?.scrollIntoView({ block: 'start' }),
+      );
+    else window.scrollTo({ top: 0, behavior: 'instant' });
   }
   useEffect(() => {
     const f = () => {
       setPage(route());
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      if (route() === 'faq')
+        requestAnimationFrame(() =>
+          document.getElementById('faq')?.scrollIntoView({ block: 'start' }),
+        );
+      else window.scrollTo({ top: 0, behavior: 'instant' });
     };
     window.addEventListener('hashchange', f);
     return () => {
@@ -71,6 +86,14 @@ export default function App() {
       if (timer.current) clearTimeout(timer.current);
     };
   }, []);
+  useEffect(() => {
+    if (page === 'faq') {
+      const frame = requestAnimationFrame(() =>
+        document.getElementById('faq')?.scrollIntoView({ block: 'start' }),
+      );
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [page]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -173,10 +196,10 @@ export default function App() {
       <header className="site-header">
         <a
           className="brand"
-          href="#/planner"
+          href="#/home"
           onClick={(e) => {
             e.preventDefault();
-            navigate('planner');
+            navigate('home');
           }}
         >
           <span className="brand-symbol">
@@ -185,7 +208,7 @@ export default function App() {
           SectionSync<span className="brand-period">.</span>
         </a>
         <nav className="header-nav" aria-label="Main navigation">
-          {(['planner', 'routine'] as Page[]).map((item, index) => (
+          {(['home', 'planner', 'routine', 'faq'] as Page[]).map((item, index) => (
             <a
               key={item}
               href={`#/${item}`}
@@ -196,7 +219,8 @@ export default function App() {
                 navigate(item);
               }}
             >
-              <span>[ 0{index + 1} ]</span> {item === 'planner' ? 'Planner' : 'Routine'}
+              <span>[ 0{index} ]</span>{' '}
+              {item === 'faq' ? 'FAQ' : item.charAt(0).toUpperCase() + item.slice(1)}
             </a>
           ))}
         </nav>
@@ -245,7 +269,9 @@ export default function App() {
               </button>
             </div>
           )}
-          {page === 'planner' ? (
+          {page === 'home' || page === 'faq' ? (
+            <HomePage onPlanner={() => navigate('planner')} onRoutine={() => navigate('routine')} />
+          ) : page === 'planner' ? (
             <PlannerPage
               workspace={w}
               copied={copied}
