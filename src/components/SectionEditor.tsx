@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { Section, DAYS_OF_WEEK, TimeSlot } from '../types';
+import { Plus } from 'lucide-react';
+import { Section, DAYS_OF_WEEK, formatTimeTo12h } from '../types';
 import { label, validateMeetings } from '../lib/workspace';
+import { TIME_PRESETS, DAY_GROUPS } from '../lib/schedulePresets';
 export function SectionEditor({
   section,
+  kind = 'theory',
   onSave,
   onCancel,
   count,
 }: {
   section?: Section;
+  kind?: 'theory' | 'lab';
   onSave: (s: Section) => void;
   onCancel: () => void;
   count: number;
@@ -16,14 +19,34 @@ export function SectionEditor({
   const [name, setName] = useState(section ? label(section) : ''),
     [faculty, setFaculty] = useState(section?.faculty || ''),
     [priority, setPriority] = useState(section?.preferenceOrder || count + 1),
-    [meetings, setMeetings] = useState<TimeSlot[]>(
-      section
-        ? structuredClone(section.timeSlots)
-        : [{ day: 'Monday', startTime: '09:00', endTime: '10:30' }],
-    ),
+    [days, setDays] = useState(() => {
+      if (!section) return kind === 'lab' ? 'Monday' : '0';
+      if (kind === 'lab') return section.timeSlots.length === 1 ? section.timeSlots[0].day : '';
+      const index = DAY_GROUPS.findIndex(
+        (group) =>
+          group.days.length === section.timeSlots.length &&
+          group.days.every((day) => section.timeSlots.some((m) => m.day === day)),
+      );
+      return index < 0 ? '' : String(index);
+    }),
+    [slot, setSlot] = useState(() => {
+      if (!section) return '0';
+      const index = TIME_PRESETS[kind].findIndex((preset) =>
+        section.timeSlots.every(
+          (m) => m.startTime === preset.startTime && m.endTime === preset.endTime,
+        ),
+      );
+      return index < 0 ? '' : String(index);
+    }),
     [error, setError] = useState('');
-  const edit = (i: number, key: keyof TimeSlot, value: string) =>
-    setMeetings((rows) => rows.map((m, j) => (i === j ? { ...m, [key]: value } : m)));
+  const presets = TIME_PRESETS[kind];
+  const selectedDays =
+    days === ''
+      ? []
+      : kind === 'lab'
+        ? [days as (typeof DAYS_OF_WEEK)[number]]
+        : DAY_GROUPS[Number(days)].days;
+  const selectedSlot = slot === '' ? undefined : presets[Number(slot)];
   return (
     <form
       className="inline-editor"
@@ -31,6 +54,17 @@ export function SectionEditor({
         e.preventDefault();
         try {
           if (!name.trim()) throw new Error('Enter a section name.');
+          if (days === '' || slot === '') throw new Error('Choose class days and a time slot.');
+          const preset = presets[Number(slot)];
+          const selectedDays =
+            kind === 'lab'
+              ? [days as (typeof DAYS_OF_WEEK)[number]]
+              : DAY_GROUPS[Number(days)].days;
+          const meetings = selectedDays.map((day) => ({
+            day,
+            startTime: preset.startTime,
+            endTime: preset.endTime,
+          }));
           validateMeetings(meetings);
           onSave({
             id: section?.id || crypto.randomUUID(),
@@ -83,65 +117,69 @@ export function SectionEditor({
           />
         </label>
       </div>
-      <div className="meeting-label">
-        <span>Weekly meetings</span>
-        <button
-          type="button"
-          className="text-button"
-          onClick={() =>
-            setMeetings([
-              ...meetings,
-              {
-                ...meetings[meetings.length - 1],
-                day: DAYS_OF_WEEK[
-                  (DAYS_OF_WEEK.indexOf(meetings[meetings.length - 1].day) + 1) % 7
-                ],
-              },
-            ])
-          }
-        >
-          <Plus size={13} /> Add day
-        </button>
-      </div>
-      {meetings.map((m, i) => (
-        <div className="meeting-fields" key={i}>
-          <label>
-            Day
-            <select value={m.day} onChange={(e) => edit(i, 'day', e.target.value)}>
-              {DAYS_OF_WEEK.map((d) => (
-                <option key={d}>{d}</option>
+      <div className="schedule-picker">
+        <div className="schedule-controls">
+          <fieldset className="quick-days">
+            <legend>Quick days</legend>
+            <div className={kind === 'lab' ? 'day-buttons lab-days' : 'day-buttons'}>
+              {kind === 'lab'
+                ? DAYS_OF_WEEK.map((day) => (
+                    <button
+                      key={day}
+                      type="button"
+                      aria-pressed={days === day}
+                      onClick={() => setDays(day)}
+                    >
+                      {day.slice(0, 3)}
+                    </button>
+                  ))
+                : DAY_GROUPS.map((group, index) => (
+                    <button
+                      key={group.name}
+                      type="button"
+                      aria-pressed={days === String(index)}
+                      onClick={() => setDays(String(index))}
+                    >
+                      {group.name}
+                    </button>
+                  ))}
+            </div>
+          </fieldset>
+          <label className="slot-choice">
+            <span className="sr-only">{kind === 'lab' ? 'Lab time slot' : 'Theory time slot'}</span>
+            <select required value={slot} onChange={(e) => setSlot(e.target.value)}>
+              <option value="" disabled>
+                Choose a time slot
+              </option>
+              {presets.map((preset, index) => (
+                <option key={preset.name} value={index}>
+                  {preset.name}: {formatTimeTo12h(preset.startTime)}–
+                  {formatTimeTo12h(preset.endTime)}
+                </option>
               ))}
             </select>
           </label>
-          <label>
-            From
-            <input
-              required
-              type="time"
-              value={m.startTime}
-              onChange={(e) => edit(i, 'startTime', e.target.value)}
-            />
-          </label>
-          <label>
-            Until
-            <input
-              required
-              type="time"
-              value={m.endTime}
-              onChange={(e) => edit(i, 'endTime', e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Remove meeting"
-            disabled={meetings.length === 1}
-            onClick={() => setMeetings(meetings.filter((_, j) => j !== i))}
-          >
-            <Trash2 size={15} />
-          </button>
         </div>
-      ))}
+        <div
+          className="schedule-preview"
+          role="status"
+          aria-live="polite"
+          aria-label="Schedule preview"
+        >
+          {selectedDays.length > 0 && selectedSlot ? (
+            selectedDays.map((day) => (
+              <div key={day}>
+                <span>{day}</span>
+                <span>
+                  {formatTimeTo12h(selectedSlot.startTime)}–{formatTimeTo12h(selectedSlot.endTime)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p>Choose days and a time slot to preview your schedule.</p>
+          )}
+        </div>
+      </div>
       {error && (
         <p role="alert" className="error-text">
           {error}

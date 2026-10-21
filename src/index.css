@@ -2337,11 +2337,13 @@ main {
   font-size: 9px;
 }
 .planner-page .inline-editor {
-  margin-top: 12px;
-  padding: 13px;
+  width: 100%;
+  max-width: 680px;
+  margin-top: 10px;
+  padding: 12px;
 }
 .planner-page .inline-heading {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .planner-page .inline-editor input,
 .planner-page .inline-editor select {
@@ -2360,8 +2362,8 @@ main {
   gap: 9px;
 }
 .planner-page .editor-footer {
-  margin-top: 13px;
-  padding-top: 12px;
+  margin-top: 10px;
+  padding-top: 9px;
 }
 .planner-page .editor-footer .button {
   min-height: 34px;
@@ -2513,4 +2515,113 @@ main {
   .planner-page .section-utilities {
     opacity: 1;
   }
+}
+
+.schedule-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 12px;
+  align-items: end;
+  margin: 12px 0 0;
+}
+.quick-days {
+  border: 0;
+  padding: 0;
+  margin: 0 0 7px;
+  min-width: 0;
+}
+.quick-days legend {
+  font: 10px var(--mono);
+  margin-bottom: 7px;
+}
+.day-buttons {
+  display: flex;
+  gap: 6px;
+}
+.day-buttons button {
+  flex: 1;
+  border: 1px solid #222;
+  padding: 7px;
+  font: 12px var(--mono);
+  text-transform: uppercase;
+  min-height: 32px;
+}
+.day-buttons button:hover {
+  background: #eee;
+}
+.day-buttons button[aria-pressed='true'] {
+  background: #171717;
+  color: #fff;
+}
+.lab-days {
+  flex-wrap: wrap;
+}
+.lab-days button {
+  flex: 1 0 22%;
+}
+.schedule-controls {
+  min-width: 0;
+}
+.schedule-controls .slot-choice {
+  margin: 0;
+}
+.schedule-controls select {
+  width: 100%;
+  min-width: 0;
+}
+.schedule-preview {
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 74px;
+  gap: 5px;
+  border: 1px solid #d8d8d8;
+  background: #fff;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.schedule-preview > div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.schedule-preview > div > span:first-child {
+  color: #777;
+}
+.schedule-preview p {
+  margin: 0;
+  color: #777;
+}
+@media (max-width: 650px) {
+  .schedule-picker {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reserve space for the dropdown indicator, including compact editor controls. */
+select,
+.planner-page .inline-editor select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px 14px;
 }

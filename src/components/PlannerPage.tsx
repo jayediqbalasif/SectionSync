@@ -289,6 +289,7 @@ export function PlannerPage({
                       <SectionEditor
                         key={editing.section?.id || 'new'}
                         section={editing.section}
+                        kind={c.kind}
                         count={c.sections.length}
                         onCancel={() => setEditing(null)}
                         onSave={(s) => {
