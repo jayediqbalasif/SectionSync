@@ -8,6 +8,14 @@
       name="description"
       content="A private course planner. Choose sections, organize your routine, and keep your plans on your device."
     />
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('sectionsync.theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        } catch (e) {}
+      })();
+    </script>
     <link
       rel="preload"
       href="/fonts/space-grotesk-latin.woff2"

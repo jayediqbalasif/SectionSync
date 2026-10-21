@@ -192,14 +192,14 @@ export function RoutinePage({
   );
 }
 const COLORS: Record<string, { bg: string; ink: string; edge: string }> = {
-  indigo: { bg: '#f4f4f2', ink: '#171717', edge: '#939393' },
-  blue: { bg: '#f4f4f2', ink: '#171717', edge: '#939393' },
-  emerald: { bg: '#f4f4f2', ink: '#171717', edge: '#939393' },
-  amber: { bg: '#f4f4f2', ink: '#171717', edge: '#939393' },
-  rose: { bg: '#f4f4f2', ink: '#171717', edge: '#939393' },
-  purple: { bg: '#f4f4f2', ink: '#171717', edge: '#939393' },
-  teal: { bg: '#f4f4f2', ink: '#171717', edge: '#939393' },
-  sky: { bg: '#f4f4f2', ink: '#171717', edge: '#939393' },
+  indigo: { bg: 'var(--event-bg)', ink: 'var(--event-ink)', edge: 'var(--event-edge)' },
+  blue: { bg: 'var(--event-bg)', ink: 'var(--event-ink)', edge: 'var(--event-edge)' },
+  emerald: { bg: 'var(--event-bg)', ink: 'var(--event-ink)', edge: 'var(--event-edge)' },
+  amber: { bg: 'var(--event-bg)', ink: 'var(--event-ink)', edge: 'var(--event-edge)' },
+  rose: { bg: 'var(--event-bg)', ink: 'var(--event-ink)', edge: 'var(--event-edge)' },
+  purple: { bg: 'var(--event-bg)', ink: 'var(--event-ink)', edge: 'var(--event-edge)' },
+  teal: { bg: 'var(--event-bg)', ink: 'var(--event-ink)', edge: 'var(--event-edge)' },
+  sky: { bg: 'var(--event-bg)', ink: 'var(--event-ink)', edge: 'var(--event-edge)' },
 };
 export function WeekCalendar({
   courses,

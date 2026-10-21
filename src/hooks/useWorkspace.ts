@@ -43,12 +43,15 @@ function load(): { data: Workspace; error: string } {
     };
   }
 }
+const MAX_HISTORY = 5;
+
 export function useWorkspace() {
   const [initial] = useState(load),
     [data, setData] = useState(initial.data),
     [error, setError] = useState(initial.error),
     [saved, setSaved] = useState(!initial.error),
-    [undo, setUndo] = useState<Workspace | null>(null);
+    [undoStack, setUndoStack] = useState<Workspace[]>([]),
+    [redoStack, setRedoStack] = useState<Workspace[]>([]);
   const dirty = useRef(false);
   function persist(next: Workspace) {
     try {
@@ -69,11 +72,46 @@ export function useWorkspace() {
     validateCourses(next.courses);
     validSelections(next.courses, next.selectedSections);
     next.updatedAt = new Date().toISOString();
-    setUndo(current);
+    setUndoStack((prev) => [...prev.slice(-(MAX_HISTORY - 1)), structuredClone(current)]);
+    setRedoStack([]);
     dirty.current = true;
     setSaved(false);
     stateRef.current = next;
     setData(next);
+  }
+
+  function undoChange() {
+    setUndoStack((prevUndo) => {
+      if (prevUndo.length === 0) return prevUndo;
+      const previous = prevUndo[prevUndo.length - 1];
+      const remainingUndo = prevUndo.slice(0, -1);
+      const current = stateRef.current;
+      setRedoStack((prevRedo) => [
+        ...prevRedo.slice(-(MAX_HISTORY - 1)),
+        structuredClone(current),
+      ]);
+      stateRef.current = previous;
+      setData(previous);
+      persist(previous);
+      return remainingUndo;
+    });
+  }
+
+  function redoChange() {
+    setRedoStack((prevRedo) => {
+      if (prevRedo.length === 0) return prevRedo;
+      const next = prevRedo[prevRedo.length - 1];
+      const remainingRedo = prevRedo.slice(0, -1);
+      const current = stateRef.current;
+      setUndoStack((prevUndo) => [
+        ...prevUndo.slice(-(MAX_HISTORY - 1)),
+        structuredClone(current),
+      ]);
+      stateRef.current = next;
+      setData(next);
+      persist(next);
+      return remainingRedo;
+    });
   }
 
   useEffect(() => {
@@ -86,18 +124,21 @@ export function useWorkspace() {
     data,
     error,
     saved,
-    undo,
+    undo: undoStack.length > 0,
+    redo: redoStack.length > 0,
+    undoCount: undoStack.length,
+    redoCount: redoStack.length,
     change,
     save: () => persist(data),
-    undoChange: () => {
-      if (undo) {
-        setData(undo);
-        setUndo(null);
-        persist(undo);
-      }
-    },
+    undoChange,
+    redoChange,
     replace: (next: Workspace) => {
-      setUndo(data);
+      setUndoStack((prev) => [
+        ...prev.slice(-(MAX_HISTORY - 1)),
+        structuredClone(stateRef.current),
+      ]);
+      setRedoStack([]);
+      stateRef.current = next;
       setData(next);
       persist(next);
     },

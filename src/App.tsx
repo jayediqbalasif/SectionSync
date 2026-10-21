@@ -6,13 +6,15 @@ import {
   ArrowUpRight,
   Plus,
   Download,
-  Upload,
   Bookmark,
   X,
   Undo2,
+  Redo2,
   Check,
   HardDrive,
   ArrowRight,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Course, Section, SavedPlan } from './types';
 import { SAMPLE_COURSES } from './sampleData';
@@ -32,7 +34,49 @@ import { RoutinePage } from './components/RoutinePage';
 import { HomePage } from './components/HomePage';
 import { FaqPage } from './components/FaqPage';
 import { Dialog } from './components/Dialog';
+
 type Page = 'home' | 'planner' | 'routine' | 'faq';
+type Theme = 'light' | 'dark';
+
+function ImportTrayIcon({
+  size = 16,
+  strokeWidth = 1.8,
+}: {
+  size?: number;
+  strokeWidth?: number;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5" />
+    </svg>
+  );
+}
+
+function getInitialTheme(): Theme {
+  try {
+    const stored = localStorage.getItem('sectionsync.theme');
+    if (stored === 'dark' || stored === 'light') return stored;
+    return typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
 const route = (): Page => {
   const path = location.hash;
   if (path.startsWith('#/planner')) return 'planner';
@@ -41,7 +85,21 @@ const route = (): Page => {
   return 'home';
 };
 export default function App() {
-  const { data: w, error, saved, undo, change, replace, save, undoChange } = useWorkspace();
+  const {
+    data: w,
+    error,
+    saved,
+    undo,
+    redo,
+    undoCount,
+    redoCount,
+    change,
+    replace,
+    save,
+    undoChange,
+    redoChange,
+  } = useWorkspace();
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [page, setPage] = useState<Page>(route),
     [courseEdit, setCourseEdit] = useState<Course | 'new' | null>(null),
     [saveOpen, setSaveOpen] = useState(false),
@@ -58,6 +116,17 @@ export default function App() {
     [planNote, setPlanNote] = useState('');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
     file = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('sectionsync.theme', theme);
+    } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
   const notify = (msg: string) => {
     setToast(msg);
     if (timer.current) clearTimeout(timer.current);
@@ -81,15 +150,33 @@ export default function App() {
   }, []);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      const isInput = activeTag === 'input' || activeTag === 'textarea';
+
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         save();
         notify('Workspace saved on this device.');
+      } else if (!isInput && (e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (undo) {
+          undoChange();
+          notify('Undo last change.');
+        }
+      } else if (
+        !isInput &&
+        ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey)))
+      ) {
+        e.preventDefault();
+        if (redo) {
+          redoChange();
+          notify('Redo change.');
+        }
       }
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [w]);
+  }, [w, undo, redo, undoChange, redoChange]);
   const stats = summary(w.courses, w.selectedSections),
     selected = chosen(w.courses, w.selectedSections);
   function exportBackup() {
@@ -219,9 +306,18 @@ export default function App() {
             disabled={!undo}
             onClick={undoChange}
             aria-label="Undo last change"
-            title="Undo last change"
+            title={undo ? `Undo last change (${undoCount}/5) — ⌘Z` : 'Nothing to undo'}
           >
             <Undo2 size={16} />
+          </button>
+          <button
+            className="icon-button"
+            disabled={!redo}
+            onClick={redoChange}
+            aria-label="Redo change"
+            title={redo ? `Redo change (${redoCount}/5) — ⌘⇧Z` : 'Nothing to redo'}
+          >
+            <Redo2 size={16} />
           </button>
           <button
             className="icon-button"
@@ -229,7 +325,7 @@ export default function App() {
             aria-label="Import backup"
             title="Import backup"
           >
-            <Upload size={16} />
+            <ImportTrayIcon size={16} />
           </button>
           <button
             className="icon-button"
@@ -239,8 +335,14 @@ export default function App() {
           >
             <HardDrive size={16} />
           </button>
-          <button className="button small" onClick={() => setSaveOpen(true)}>
-            <Bookmark size={14} /> Save plan
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
           </button>
         </div>
       </header>
@@ -497,7 +599,7 @@ export default function App() {
                 <Download size={15} /> Download backup
               </button>
               <button className="button" onClick={() => file.current?.click()}>
-                <Upload size={15} /> Restore backup
+                <ImportTrayIcon size={15} /> Restore backup
               </button>
             </div>
           </section>
