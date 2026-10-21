@@ -2625,3 +2625,180 @@ select,
   background-position: right 12px center;
   background-size: 14px 14px;
 }
+
+/* Square tiles with controls layered over their content. */
+.planner-page .section-block {
+  position: relative;
+  aspect-ratio: 1;
+  align-self: flex-start;
+}
+.planner-page .section-choice {
+  height: 100%;
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 12px 10px;
+  gap: 8px;
+}
+.planner-page .instructor {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+  font-size: 11px;
+}
+.planner-page .section-utilities {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 5px;
+  background: rgb(255 255 255 / 76%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgb(0 0 0 / 8%);
+  pointer-events: none;
+  transform: translateY(3px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+.planner-page .section-block:hover .section-utilities,
+.planner-page .section-block:focus-within .section-utilities {
+  pointer-events: auto;
+  transform: translateY(0);
+}
+@media (hover: none) {
+  .planner-page .section-utilities {
+    pointer-events: auto;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .planner-page .section-utilities {
+    transition: none;
+  }
+}
+
+/* Compact square choices; actions float over the tile instead of taking a row. */
+.planner-page .section-block {
+  position: relative;
+  flex: 0 0 88px;
+  width: 88px;
+  min-width: 88px;
+  max-width: 88px;
+  height: 88px;
+}
+.planner-page .section-choice {
+  height: 100%;
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 7px;
+  gap: 4px;
+}
+.planner-page .instructor {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  line-height: 1.3;
+}
+.planner-page .section-utilities {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 26px;
+  padding: 2px;
+  border-top: 1px solid rgb(0 0 0 / 7%);
+  background: rgb(250 250 248 / 75%);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+.planner-page .section-utilities > div {
+  gap: 0;
+}
+.planner-page .section-utilities > svg {
+  display: none;
+}
+.planner-page .section-utilities .mini-icon {
+  width: 20px;
+  height: 22px;
+  color: #555;
+}
+.planner-page .section-utilities .mini-icon:disabled {
+  color: #bbb;
+}
+.planner-page .section-block:hover .section-utilities,
+.planner-page .section-block:focus-within .section-utilities {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.planner-page .new-section {
+  flex: 0 0 40px;
+  width: 40px;
+  min-height: 88px;
+  height: 88px;
+  flex-direction: column;
+}
+@media (hover: none) {
+  .planner-page .section-utilities {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .planner-page .section-utilities {
+    transition: none;
+  }
+}
+
+.planner-page .section-block .section-title strong {
+  font-size: 14px;
+}
+
+/* One spacing rhythm for course rows, their notes, and the final add action. */
+.planner-page .course-stack {
+  gap: 0;
+}
+.planner-page .course-card {
+  padding: 10px 0;
+}
+.planner-page .course-card > header {
+  padding: 0 0 10px;
+}
+.planner-page .course-body {
+  padding: 0;
+}
+.planner-page .course-footnote {
+  margin-top: 6px;
+  min-height: 12px;
+  line-height: 12px;
+}
+.planner-page .add-course-row {
+  margin-top: 0;
+  padding: 12px 0;
+}
+.planner-page + .page-footer {
+  margin-top: 10px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+@media (min-width: 1100px) {
+  .planner-page .course-card > header {
+    padding: 0;
+  }
+}
