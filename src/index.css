@@ -1,5 +1,7 @@
+@import './fonts.css';
+
 :root {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Space Grotesk', Arial, sans-serif;
   color: #141414;
   background: #fff;
   font-size: 13px;
@@ -8,7 +10,7 @@
   --line: #dedede;
   --muted: #727272;
   --sidebar: 184px;
-  --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 * {
   box-sizing: border-box;
@@ -97,7 +99,7 @@ label select,
 label textarea {
   display: block;
   margin-top: 9px;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Space Grotesk', Arial, sans-serif;
   font-size: 13px;
   letter-spacing: 0;
   text-transform: none;
@@ -1283,7 +1285,7 @@ main {
 }
 .plan-stats strong {
   font:
-    25px Arial,
+    25px 'Space Grotesk',
     sans-serif;
   letter-spacing: -0.9px;
   color: #222;
@@ -3180,5 +3182,26 @@ main {
   }
   .faq-heading h2 {
     font-size: 36px;
+  }
+}
+
+.faq-page {
+  padding-top: 38px;
+  min-height: calc(100vh - 170px);
+  align-content: start;
+}
+.faq-page .faq-heading h1 {
+  font-size: 48px;
+  letter-spacing: -2px;
+  line-height: 1.08;
+  margin-top: 20px;
+}
+@media (max-width: 760px) {
+  .faq-page {
+    padding-top: 24px;
+    min-height: 0;
+  }
+  .faq-page .faq-heading h1 {
+    font-size: 38px;
   }
 }

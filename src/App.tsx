@@ -30,6 +30,7 @@ import {
 import { PlannerPage } from './components/PlannerPage';
 import { RoutinePage } from './components/RoutinePage';
 import { HomePage } from './components/HomePage';
+import { FaqPage } from './components/FaqPage';
 import { Dialog } from './components/Dialog';
 type Page = 'home' | 'planner' | 'routine' | 'faq';
 const route = (): Page => {
@@ -65,20 +66,12 @@ export default function App() {
   function navigate(p: Page) {
     location.hash = `/${p}`;
     setPage(p);
-    if (p === 'faq')
-      requestAnimationFrame(() =>
-        document.getElementById('faq')?.scrollIntoView({ block: 'start' }),
-      );
-    else window.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
   useEffect(() => {
     const f = () => {
       setPage(route());
-      if (route() === 'faq')
-        requestAnimationFrame(() =>
-          document.getElementById('faq')?.scrollIntoView({ block: 'start' }),
-        );
-      else window.scrollTo({ top: 0, behavior: 'instant' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     };
     window.addEventListener('hashchange', f);
     return () => {
@@ -86,14 +79,6 @@ export default function App() {
       if (timer.current) clearTimeout(timer.current);
     };
   }, []);
-  useEffect(() => {
-    if (page === 'faq') {
-      const frame = requestAnimationFrame(() =>
-        document.getElementById('faq')?.scrollIntoView({ block: 'start' }),
-      );
-      return () => cancelAnimationFrame(frame);
-    }
-  }, [page]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -269,7 +254,9 @@ export default function App() {
               </button>
             </div>
           )}
-          {page === 'home' || page === 'faq' ? (
+          {page === 'faq' ? (
+            <FaqPage />
+          ) : page === 'home' ? (
             <HomePage onPlanner={() => navigate('planner')} onRoutine={() => navigate('routine')} />
           ) : page === 'planner' ? (
             <PlannerPage
