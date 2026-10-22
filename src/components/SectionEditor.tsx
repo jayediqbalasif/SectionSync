@@ -207,6 +207,25 @@ export function SectionEditor({
             <input type="number" min="1" max={count + (section ? 0 : 1)} required value={priority} onChange={(event) => setPriority(Number(event.target.value))} />
           </label>
         </div>
+        {exactFacultyOfferings.length > 0 && (
+          <fieldset className="faculty-offerings">
+            <legend>Offered sections · {courseCode}</legend>
+            <p>{faculty}</p>
+            <div className="offering-buttons">
+              {exactFacultyOfferings.map((offering) => (
+                <button
+                  key={offering.catalogOfferingId}
+                  type="button"
+                  aria-pressed={matchedId === offering.catalogOfferingId}
+                  onClick={() => applyOffering(offering)}
+                >
+                  <strong>Section {offering.name}</strong>
+                  <span>{offering.timeSlots.map((meeting) => meeting.day.slice(0, 3)).join(' / ')} · {formatTimeTo12h(offering.timeSlots[0].startTime)}–{formatTimeTo12h(offering.timeSlots[0].endTime)}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
         <p className={`catalog-match ${matched ? 'matched' : ''}`} aria-live="polite">
           {matched
             ? `Official ${matched.status === 'if-required' ? 'if-required ' : ''}offering · ${matched.faculty}`

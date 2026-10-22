@@ -111,6 +111,15 @@ export function RoutinePage({
                   <span>Section {label(section)}</span>
                   <span>{section.faculty}</span>
                   <span>{course.credits ?? 3} cr</span>
+                  <div className="routine-meetings">
+                    {section.timeSlots.map((meeting, index) => (
+                      <div key={index}>
+                        <strong>{meeting.day}</strong>
+                        <span>{formatTimeTo12h(meeting.startTime)}–{formatTimeTo12h(meeting.endTime)}</span>
+                        <span>Room {meeting.room || 'TBA'}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </section>
@@ -274,6 +283,8 @@ export function WeekCalendar({
                             {formatTimeTo12h(m.endTime).replace(/^0/, '')}
                           </span>
                           <small>Section {label(section)}</small>
+                          <small className="calendar-room">Room {m.room || 'TBA'}</small>
+                          <small className="calendar-faculty">{section.faculty}</small>
                         </div>
                       );
                     }),

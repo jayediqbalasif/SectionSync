@@ -15,7 +15,7 @@ import {
   GripVertical,
   ChevronRight,
 } from 'lucide-react';
-import { Course, Section } from '../types';
+import { Course, Section, formatTimeTo12h } from '../types';
 import { Workspace, chosen, findConflicts, label, summary } from '../lib/workspace';
 import { SectionEditor } from './SectionEditor';
 export function PlannerPage({
@@ -233,6 +233,11 @@ export function PlannerPage({
                               <span className="faculty" title={s.faculty}>
                                 {s.faculty}
                               </span>
+                              <span className="tile-meetings">
+                                {s.timeSlots.map((meeting, index) => (
+                                  <span key={index}>{meeting.day.slice(0, 3)} {formatTimeTo12h(meeting.startTime).replace(/^0/, '')}–{formatTimeTo12h(meeting.endTime).replace(/^0/, '')}</span>
+                                ))}
+                              </span>
                             </button>
                             <div className="section-utilities">
                               <GripVertical size={12} aria-hidden />
@@ -348,7 +353,14 @@ export function PlannerPage({
                         <span>{label(section)}</span>
                       </strong>
                       <p>{section.faculty}</p>
-                      <small>{section.timeSlots.map((m) => m.day.slice(0, 3)).join(' · ')}</small>
+                      <div className="selected-meetings">
+                        {section.timeSlots.map((meeting, index) => (
+                          <small key={index}>
+                            <span>{meeting.day.slice(0, 3)} · {formatTimeTo12h(meeting.startTime)}–{formatTimeTo12h(meeting.endTime)}</span>
+                            <span>Room {meeting.room || 'TBA'}</span>
+                          </small>
+                        ))}
+                      </div>
                     </div>
                     <Check size={13} />
                   </div>
