@@ -1,10 +1,6 @@
 import { Plus } from 'lucide-react';
 
 const FAQ = [
-  ['Where do the official course details come from?', 'The active catalog is UIU BSCSE Fall 2026. Enter a course code with or without spaces to fill its title, credits and type. Choose a listed faculty or section to load its published schedule.'],
-  ['Can I change an official schedule?', 'Yes. Choosing a day or slot that is not offered asks for confirmation. An override is marked Customized. Editing the faculty or priority preserves your saved times and rooms until you deliberately change the schedule.'],
-  ['How is a new trimester added?', 'A new routine PDF is imported and checked by the site maintainer before its catalog is published. Browser JSON backups restore your workspace; they do not replace the official catalog.'],
-  ['What if my saved data cannot be read?', 'Saving is blocked to protect the original data. Download the original data from the warning first, then restore a valid backup or explicitly choose Use current workspace.'],
   [
     'Do I need an account?',
     'No. Open the planner and start choosing sections. SectionSync does not need a sign-in or a backend.',
