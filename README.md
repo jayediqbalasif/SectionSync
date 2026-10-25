@@ -29,10 +29,10 @@ npm run preview
 - Compact section tiles showing the section and faculty names. Meeting times and priority are managed in the section editor.
 - Conflict filtering with hidden-option counts. Showing conflicts lets you replace overlapping selections with an explicit explanation.
 - Inline section creation and editing, including multiple meeting days.
-- Drag-to-reorder with accessible arrow buttons for keyboard and touch use.
+- Drag-to-reorder, with Alt + Up / Down on a focused tile for keyboard use.
 - Course creation/editing, configurable credits and theory/lab labels.
 - Copy/paste section options between courses, with confirmation before replacement.
-- A selection summary and one-step Undo.
+- A selection summary and five-step Undo/Redo.
 
 ## Routine
 
@@ -49,6 +49,10 @@ The app writes a single versioned workspace record to localStorage (`sectionsync
 
 Same-origin data from the original app is migrated on first use. Original localStorage keys remain untouched. Invalid stored data is not overwritten automatically. Save failures remain visible; export a backup before closing if browser storage is unavailable or full.
 
+If existing data is unreadable, saving stays blocked. Download the original data from the recovery notice, then restore a valid backup and explicitly choose **Use current workspace** to replace the unreadable record. Editing a section preserves its saved days, times and rooms until the schedule is deliberately changed. The editor does not add a custom room field.
+
+On small screens Routine presents a day-by-day agenda. Desktop and print retain the weekly timetable.
+
 Clearing site data, private browsing, browser eviction, or device loss can remove local work. Download JSON backups from **Storage & backups**. Backups from the original app's `1.0` format and this redesign's `2.0` format are supported. Imports are validated before replacing any data.
 
 The demo course library comes from the supplied ZIP. It is not official university semester data. Older courses do not include credits, so they initially default to 3; edit them to match actual university values. The fabricated syllabus, accreditation statements, mock server status, and misleading efficiency score from the original UI have been removed.
@@ -58,6 +62,8 @@ The demo course library comes from the supplied ZIP. It is not official universi
 The planner includes the Fall 2026 BSCSE catalog generated from the supplied UIU faculty routine. Entering an exact course code fills its title, credits, and theory/lab type while keeping those fields editable. Section and faculty suggestions come from the same catalog; an exact official match also fills its published days and time. Custom courses and sections use the same forms when no catalog match exists.
 
 The import is repeatable for future trimesters. See `catalogs/README.md` for the command, file layout, validation report, and review steps.
+
+Importer regression tests: use the same Python interpreter as the importer to run `python3 -m unittest discover -s scripts/catalog -p 'test_*.py'`.
 
 ## Project
 
@@ -94,3 +100,12 @@ SectionSync/
 Repository: https://github.com/jayediqbalasif/SectionSync
 
 To save future changes after cloning the repository, use a Git client to commit and push to `main`. Installed dependencies, generated build files, and browser workspace data are not part of the repository.
+
+### Workspace and accessibility updates
+
+- On touch screens, use the earlier/later arrows beneath each section to set preference order. Drag and Alt+Up/Down remain available on desktop.
+- If another tab changes this workspace, use **Reload workspace** in the notice to load that copy and reset undo/redo history.
+- A stale active selection is removed on load with a notice. Backup imports and saved plans still require valid, non-overlapping selections; unreadable course data remains protected by recovery mode.
+- The official catalog loads on demand when a course dialog or section editor opens. It is packaged separately from the application and cached for the session.
+- The selected panel combines course code and title and includes a seven-day, text-free occupancy preview. Routine retains all seven days, including an empty Sunday.
+- Routine tabs support Left/Right, Home and End. The skip link keeps the current route; page titles and heading focus follow navigation.

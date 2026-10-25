@@ -1,23 +1,27 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Plus,
   Search,
   Check,
   ArrowRight,
-  ArrowUp,
-  ArrowDown,
+  X,
   Pencil,
   Trash2,
   Copy,
   Clipboard,
   Eye,
   EyeOff,
-  GripVertical,
   ChevronRight,
+  ChevronLeft,
+  MoreHorizontal,
+  MapPin,
 } from 'lucide-react';
-import { Course, Section, formatTimeTo12h } from '../types';
+import { Course, Section } from '../types';
 import { Workspace, chosen, findConflicts, label, summary } from '../lib/workspace';
 import { SectionEditor } from './SectionEditor';
+import { meetingDisplay } from '../lib/meetingDisplay';
+import { CATALOG_META, normalizeCourseCode } from '../lib/catalog';
+import { WeekOccupancy } from './WeekOccupancy';
 export function PlannerPage({
   workspace: w,
   onPick,
@@ -54,15 +58,15 @@ export function PlannerPage({
     filtered = w.courses.filter((c) =>
       `${c.code} ${c.title} ${c.sections.map((s) => s.faculty).join(' ')}`
         .toLowerCase()
-        .includes(search.toLowerCase()),
+        .includes(search.toLowerCase()) || normalizeCourseCode(c.code).includes(normalizeCourseCode(search)),
     );
   return (
     <div className="planner-page">
       <div className="page-title">
         <div>
-          <span className="eyebrow">§ 01 — COURSE PLANNER</span>
+          <span className="eyebrow">{CATALOG_META.label.toUpperCase()} — {CATALOG_META.program}</span>
           <h1>Course planner.</h1>
-          <p>Select sections. Resolve overlaps. Build your week.</p>
+          <p>Select sections and build your week.</p>
         </div>
         <button className="button primary" onClick={() => onEditCourse()}>
           <Plus size={16} /> New course
@@ -93,7 +97,7 @@ export function PlannerPage({
               </div>
               <span className="progress-count">
                 {items.length}
-                <span> / {w.courses.length}</span>
+                <span> / {w.courses.length}</span><small>{summary(w.courses, w.selectedSections).credits} credits</small>
               </span>
             </div>
             <div
@@ -140,6 +144,7 @@ export function PlannerPage({
                 <article
                   className={`course-card ${current ? 'complete' : ''}`}
                   id={`course-${c.id}`}
+                  tabIndex={-1}
                   key={c.id}
                 >
                   <header>
@@ -160,37 +165,8 @@ export function PlannerPage({
                       <h2>{c.title}</h2>
                     </div>
                     <div className="course-actions">
-                      <button
-                        className="icon-button"
-                        aria-label={`Copy sections from ${c.code}`}
-                        disabled={!c.sections.length}
-                        onClick={() => onCopy(c)}
-                      >
-                        <Copy size={14} />
-                      </button>
-                      {copied && (
-                        <button
-                          className="icon-button"
-                          aria-label={`Paste sections into ${c.code}`}
-                          onClick={() => onPaste(c)}
-                        >
-                          <Clipboard size={14} />
-                        </button>
-                      )}
-                      <button
-                        className="icon-button"
-                        aria-label={`Edit ${c.code}`}
-                        onClick={() => onEditCourse(c)}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        className="icon-button"
-                        aria-label={`Delete ${c.code}`}
-                        onClick={() => onDeleteCourse(c)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <button className="icon-button" aria-label={`Edit ${c.code}`} onClick={() => onEditCourse(c)}><Pencil size={14} /></button>
+                      <CourseMenu course={c} copied={!!copied} onCopy={() => onCopy(c)} onPaste={() => onPaste(c)} onDelete={() => onDeleteCourse(c)} />
                     </div>
                   </header>
                   <div className="course-body">
@@ -226,6 +202,14 @@ export function PlannerPage({
                               className="section-choice"
                               onClick={() => onPick(c, s)}
                               aria-pressed={picked}
+                              aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                              title="Drag to reorder, or use Alt + Up / Down"
+                              onKeyDown={(event) => {
+                                if (event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) {
+                                  event.preventDefault();
+                                  onReorder(c, s, i + (event.key === 'ArrowUp' ? -1 : 1));
+                                }
+                              }}
                             >
                               <span className="section-title">
                                 <strong>{label(s)}</strong>
@@ -233,31 +217,18 @@ export function PlannerPage({
                               <span className="faculty" title={s.faculty}>
                                 {s.faculty}
                               </span>
+                              {(s.status === 'customized' || s.status === 'if-required') && <span className="tile-status">{s.status === 'customized' ? 'Customized' : 'If required'}</span>}
                               <span className="tile-meetings">
-                                {s.timeSlots.map((meeting, index) => (
-                                  <span key={index}>{meeting.day.slice(0, 3)} {formatTimeTo12h(meeting.startTime).replace(/^0/, '')}–{formatTimeTo12h(meeting.endTime).replace(/^0/, '')}</span>
+                                {meetingDisplay(s.timeSlots).map((meeting, index) => (
+                                  <span key={index}><b>{meeting.days}</b><span>{meeting.time}</span></span>
                                 ))}
                               </span>
                             </button>
-                            <div className="section-utilities">
-                              <GripVertical size={12} aria-hidden />
-                              <div>
-                                <button
-                                  className="mini-icon"
-                                  aria-label={`Move ${c.code} section ${label(s)} earlier`}
-                                  disabled={i === 0}
-                                  onClick={() => onReorder(c, s, i - 1)}
-                                >
-                                  <ArrowUp size={12} />
-                                </button>
-                                <button
-                                  className="mini-icon"
-                                  aria-label={`Move ${c.code} section ${label(s)} later`}
-                                  disabled={i === sorted.length - 1}
-                                  onClick={() => onReorder(c, s, i + 1)}
-                                >
-                                  <ArrowDown size={12} />
-                                </button>
+                            <div className="tile-reorder">
+                              <button className="mini-icon" disabled={i === 0} aria-label={`Move ${c.code} section ${label(s)} earlier`} onClick={() => onReorder(c, s, i - 1)}><ChevronLeft size={14} /></button>
+                              <button className="mini-icon" disabled={i === sorted.length - 1} aria-label={`Move ${c.code} section ${label(s)} later`} onClick={() => onReorder(c, s, i + 1)}><ChevronRight size={14} /></button>
+                            </div>
+                            <div className="tile-actions">
                                 <button
                                   className="mini-icon"
                                   aria-label={`Edit ${c.code} section ${label(s)}`}
@@ -270,9 +241,8 @@ export function PlannerPage({
                                   aria-label={`Delete ${c.code} section ${label(s)}`}
                                   onClick={() => onDeleteSection(c, s)}
                                 >
-                                  <Trash2 size={12} />
+                                  <X size={13} />
                                 </button>
-                              </div>
                             </div>
                           </div>
                         );
@@ -283,12 +253,8 @@ export function PlannerPage({
                       </button>
                     </div>
                     <div className="course-footnote">
-                      <span>
-                        {hidden && w.hideConflicted
-                          ? `${hidden} conflicting ${hidden === 1 ? 'section hidden' : 'sections hidden'}`
-                          : `${c.sections.length} sections available`}
-                      </span>
-                      <span>Drag to reorder · First is preferred</span>
+                      {hidden > 0 && w.hideConflicted ? <button className="hidden-conflicts" onClick={onHide}>{hidden} conflicting {hidden === 1 ? 'section hidden' : 'sections hidden'} · Show</button> : <span>{c.sections.length} sections available</span>}
+                      <span><span className="reorder-desktop">Drag to reorder</span><span className="reorder-touch">Use arrows to reorder</span> · First is preferred</span>
                     </div>
                     {editing?.course === c.id && (
                       <SectionEditor
@@ -346,38 +312,82 @@ export function PlannerPage({
               <div className="selection-list">
                 {items.map(({ course, section }) => (
                   <div key={course.id}>
-                    <i className={`selection-dot ${course.color}`} />
-                    <div>
-                      <strong>
-                        {course.code}
-                        <span>{label(section)}</span>
-                      </strong>
-                      <p>{section.faculty}</p>
-                      <div className="selected-meetings">
-                        {section.timeSlots.map((meeting, index) => (
-                          <small key={index}>
-                            <span>{meeting.day.slice(0, 3)} · {formatTimeTo12h(meeting.startTime)}–{formatTimeTo12h(meeting.endTime)}</span>
-                            <span>Room {meeting.room || 'TBA'}</span>
-                          </small>
-                        ))}
-                      </div>
-                    </div>
-                    <Check size={13} />
+                    <button className="selected-course-link" onClick={() => {
+                      setSearch('');
+                      requestAnimationFrame(() => {
+                        const target = document.getElementById(`course-${course.id}`);
+                        target?.scrollIntoView({ block: 'start' });
+                        target?.focus({ preventScroll: true });
+                      });
+                    }} aria-label={`Go to ${course.code} section ${label(section)}`}>
+                      <span className="selection-card">
+                        <span className="selection-card-heading">
+                          <span className="selection-course-heading"><span className="selection-card-code">{course.code}</span><span className="selection-card-title">{course.title}</span></span>
+                          <span className="selection-section-badge">SEC {label(section)}</span>
+                        </span>
+                        <span className="selection-card-faculty">{section.faculty}</span>
+                        <span className="selection-card-meetings">
+                          {meetingDisplay(section.timeSlots, true).map((meeting, index) => (
+                          <span className="selection-card-meeting" key={index}>
+                            <span className="selection-day-badges">
+                              {meeting.days.split(' · ').map((day) => <span key={day}>{day}</span>)}
+                            </span>
+                            <span className="selection-card-time">{meeting.time}</span>
+                            <span className={`selection-card-room ${meeting.room ? '' : 'room-unknown'}`}><MapPin size={13} aria-hidden="true" />Room {meeting.room || 'TBA'}</span>
+                          </span>
+                          ))}
+                        </span>
+                      </span>
+                    </button>
                   </div>
                 ))}
               </div>
-              <div className="selection-total">
-                <span>Selected credits</span>
-                <strong>{summary(w.courses, w.selectedSections).credits}</strong>
-              </div>
             </>
           )}
+          <WeekOccupancy courses={w.courses} selections={w.selectedSections} />
+          <div className="selection-footer">
+              {items.length > 0 && <div className="selection-total">
+                <span>Selected credits</span>
+                <strong>{summary(w.courses, w.selectedSections).credits}</strong>
+              </div>}
+          {items.length > 0 && <p className="selection-clear"><Check size={13} aria-hidden="true" />No time clashes</p>}
           <button className="button primary full" onClick={onRoutine}>
             View routine <ArrowRight size={15} />
           </button>
           <p className="local-note">Changes save automatically on this device.</p>
+          </div>
         </aside>
       </div>
     </div>
   );
+}
+
+function CourseMenu({ course, copied, onCopy, onPaste, onDelete }: { course: Course; copied: boolean; onCopy: () => void; onPaste: () => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const close = () => { setOpen(false); trigger.current?.focus(); };
+  useEffect(() => {
+    if (!open) return;
+    root.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
+    const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, [open]);
+  return <div className="course-menu" ref={root} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
+    <button ref={trigger} className="icon-button" aria-label={`More actions for ${course.code}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}><MoreHorizontal size={16} /></button>
+    {open && <div role="menu" aria-label={`${course.code} actions`} onKeyDown={(event) => {
+      if (event.key === 'Escape') { event.preventDefault(); close(); }
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        event.preventDefault();
+        const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')];
+        const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        buttons[event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
+      }
+    }}>
+      <button role="menuitem" disabled={!course.sections.length} onClick={() => { close(); onCopy(); }}><Copy size={14} />Copy sections</button>
+      <button role="menuitem" disabled={!copied} onClick={() => { close(); onPaste(); }}><Clipboard size={14} />Paste sections</button>
+      <button role="menuitem" onClick={() => { close(); onDelete(); }}><Trash2 size={14} />Delete course</button>
+    </div>}
+  </div>;
 }

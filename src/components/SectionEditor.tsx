@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { Section, DAYS_OF_WEEK, DayOfWeek, formatTimeTo12h } from '../types';
 import { label, validateMeetings } from '../lib/workspace';
 import { TIME_PRESETS, DAY_GROUPS } from '../lib/schedulePresets';
+import { useCatalog } from '../hooks/useCatalog';
 import { CatalogSection, offeringsForCourse, sameText } from '../lib/catalog';
 import { Dialog } from './Dialog';
 
@@ -42,19 +43,16 @@ export function SectionEditor({
   onCancel: () => void;
   count: number;
 }) {
+  const catalog = useCatalog();
   const offerings = useMemo(
     () => offeringsForCourse(courseCode).filter((offering) => offering.kind === kind),
-    [courseCode, kind],
-  );
-  const originalOffering = offerings.find(
-    (offering) => offering.catalogOfferingId === section?.catalogOfferingId,
+    [courseCode, kind, catalog.loading],
   );
   const [name, setName] = useState(section ? label(section) : ''),
     [faculty, setFaculty] = useState(section?.faculty || ''),
     [priority, setPriority] = useState(section?.preferenceOrder || count + 1),
-    [matchedId, setMatchedId] = useState(originalOffering?.catalogOfferingId || ''),
+    [matchedId, setMatchedId] = useState(section?.catalogOfferingId || ''),
     [days, setDays] = useState(() => {
-      if (originalOffering) return dayValue(originalOffering, kind);
       if (!section) return kind === 'lab' ? 'Monday' : '0';
       if (kind === 'lab') return section.timeSlots.length === 1 ? section.timeSlots[0].day : '';
       const index = DAY_GROUPS.findIndex(
@@ -65,7 +63,6 @@ export function SectionEditor({
       return index < 0 ? '' : String(index);
     }),
     [slot, setSlot] = useState(() => {
-      if (originalOffering) return slotValue(originalOffering, kind);
       if (!section) return '0';
       const index = TIME_PRESETS[kind].findIndex((preset) =>
         section.timeSlots.every(
@@ -79,6 +76,7 @@ export function SectionEditor({
     [pending, setPending] = useState<PendingOverride | null>(null);
 
   const presets = TIME_PRESETS[kind];
+  const [scheduleEdited, setScheduleEdited] = useState(false);
   const matched = offerings.find((offering) => offering.catalogOfferingId === matchedId);
   const officialDays = matched ? dayValue(matched, kind) : '';
   const officialSlot = matched ? slotValue(matched, kind) : '';
@@ -96,6 +94,7 @@ export function SectionEditor({
   const uniqueFaculty = [...new Set(facultyOptions.map((offering) => offering.faculty))];
 
   const applyOffering = (offering: CatalogSection) => {
+    setScheduleEdited(true);
     setMatchedId(offering.catalogOfferingId);
     setName(offering.name);
     setFaculty(offering.faculty);
@@ -126,14 +125,15 @@ export function SectionEditor({
   };
 
   const chooseRestricted = (type: 'day' | 'time', value: string, apply: () => void) => {
+    const applySchedule = () => { setScheduleEdited(true); apply(); };
     const officialValue = type === 'day' ? officialDays : officialSlot;
     if (!matched || !officialValue || value === officialValue) {
-      apply();
+      applySchedule();
       return;
     }
     setPending({
       body: `${matched.faculty} does not offer ${courseCode} section ${matched.name} at this ${type}. Use it anyway as a custom override?`,
-      apply,
+      apply: applySchedule,
     });
   };
 
@@ -145,11 +145,12 @@ export function SectionEditor({
           event.preventDefault();
           try {
             if (!name.trim()) throw new Error('Enter a section name.');
-            if (days === '' || slot === '') throw new Error('Choose class days and a time slot.');
+            const preserveSaved = !!section && !scheduleEdited;
+            if (!preserveSaved && (days === '' || slot === '')) throw new Error('Choose class days and a time slot.');
             const preset = presets[Number(slot)];
-            const chosenDays = kind === 'lab' ? [days as DayOfWeek] : DAY_GROUPS[Number(days)].days;
-            const isOfficialSchedule = !!matched && days === officialDays && slot === officialSlot;
-            const meetings = chosenDays.map((day) => {
+            const chosenDays = kind === 'lab' ? [days as DayOfWeek] : DAY_GROUPS[Number(days)]?.days || [];
+            const isOfficialSchedule = !!matched && (preserveSaved ? section.status !== 'customized' : days === officialDays && slot === officialSlot);
+            const meetings = preserveSaved ? structuredClone(section.timeSlots) : chosenDays.map((day) => {
               const officialMeeting = isOfficialSchedule
                 ? matched?.timeSlots.find((meeting) => meeting.day === day)
                 : undefined;
@@ -227,9 +228,11 @@ export function SectionEditor({
           </fieldset>
         )}
         <p className={`catalog-match ${matched ? 'matched' : ''}`} aria-live="polite">
-          {matched
+          {section && !scheduleEdited
+            ? `${section.status === 'customized' ? 'Customized schedule' : matched ? 'Official offering' : 'Saved schedule'} · Existing days, times and rooms are kept until you change the schedule.`
+            : matched
             ? `Official ${matched.status === 'if-required' ? 'if-required ' : ''}offering · ${matched.faculty}`
-            : offerings.length
+            : catalog.loading ? 'Loading official schedules…' : catalog.error ? catalog.error : offerings.length
               ? 'Choose a listed section or faculty for the official schedule, or enter custom details.'
               : 'No catalog offering found for this course. This section will be custom.'}
         </p>
@@ -252,8 +255,8 @@ export function SectionEditor({
             </fieldset>
             <label className="slot-choice">
               <span className="sr-only">{kind === 'lab' ? 'Lab time slot' : 'Theory time slot'}</span>
-              <select required value={slot} onChange={(event) => { const value = event.target.value; chooseRestricted('time', value, () => setSlot(value)); }}>
-                <option value="" disabled>Choose a time slot</option>
+              <select required={!section || scheduleEdited} value={slot} onChange={(event) => { const value = event.target.value; chooseRestricted('time', value, () => setSlot(value)); }}>
+                <option value="" disabled>{section && !scheduleEdited ? 'Keep saved schedule' : 'Choose a time slot'}</option>
                 {presets.map((preset, index) => {
                   const value = String(index);
                   const restricted = !!matched && !!officialSlot && officialSlot !== value;
@@ -263,7 +266,9 @@ export function SectionEditor({
             </label>
           </div>
           <div className="schedule-preview" role="status" aria-live="polite" aria-label="Schedule preview">
-            {selectedDays.length > 0 && selectedSlot ? selectedDays.map((day) => (
+            {section && !scheduleEdited ? section.timeSlots.map((meeting, index) => (
+              <div key={index}><span>{meeting.day}</span><span>{formatTimeTo12h(meeting.startTime)}–{formatTimeTo12h(meeting.endTime)}</span></div>
+            )) : selectedDays.length > 0 && selectedSlot ? selectedDays.map((day) => (
               <div key={day}><span>{day}</span><span>{formatTimeTo12h(selectedSlot.startTime)}–{formatTimeTo12h(selectedSlot.endTime)}</span></div>
             )) : <p>Choose days and a time slot to preview your schedule.</p>}
           </div>

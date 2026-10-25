@@ -32,3 +32,7 @@ test('replaying each action is pure and cannot duplicate history', () => {
     assert.deepEqual(state, original);
   }
 });
+
+test('reload resets both undo and redo history', () => {
+  assert.deepEqual(historyReducer({ present: 2, past: [1], future: [3] }, { type: 'reset', next: 9 }), { present: 9, past: [], future: [] });
+});

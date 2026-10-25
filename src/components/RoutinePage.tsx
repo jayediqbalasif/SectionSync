@@ -19,6 +19,7 @@ import {
   formatTimeTo12h,
 } from '../types';
 import { Workspace, chosen, label, summary } from '../lib/workspace';
+import { calendarRange } from '../lib/calendar';
 export function RoutinePage({
   workspace: w,
   onPlanner,
@@ -43,11 +44,11 @@ export function RoutinePage({
     <>
       <div className="page-title">
         <div>
-          <span className="eyebrow">§ 02 — WEEKLY ROUTINE</span>
+          <span className="eyebrow">{stats.count} COURSES — {stats.credits} CREDITS</span>
           <h1>Your routine.</h1>
           <p>
             {items.length
-              ? `${items.length} courses · ${stats.credits} credits · ${stats.days} campus ${stats.days === 1 ? 'day' : 'days'}`
+              ? `${items.length} ${items.length === 1 ? 'course' : 'courses'} · ${stats.credits} credits · ${stats.days} campus ${stats.days === 1 ? 'day' : 'days'}`
               : 'Your chosen sections will appear here.'}
           </p>
         </div>
@@ -56,11 +57,17 @@ export function RoutinePage({
         </button>
       </div>
       <div className="routine-navigation">
-        <div role="tablist" aria-label="Routine views">
-          <button role="tab" aria-selected={tab === 'week'} onClick={() => setTab('week')}>
+        <div role="tablist" aria-label="Routine views" onKeyDown={(event) => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 'week' : event.key === 'End' ? 'saved' : tab === 'week' ? 'saved' : 'week';
+          setTab(next);
+          document.getElementById(`routine-tab-${next}`)?.focus();
+        }}>
+          <button id="routine-tab-week" role="tab" aria-controls="routine-panel-week" tabIndex={tab === 'week' ? 0 : -1} aria-selected={tab === 'week'} onClick={() => setTab('week')}>
             Weekly routine
           </button>
-          <button role="tab" aria-selected={tab === 'saved'} onClick={() => setTab('saved')}>
+          <button id="routine-tab-saved" role="tab" aria-controls="routine-panel-saved" tabIndex={tab === 'saved' ? 0 : -1} aria-selected={tab === 'saved'} onClick={() => setTab('saved')}>
             Saved plans <span>{w.savedPlans.length}</span>
           </button>
         </div>
@@ -78,12 +85,13 @@ export function RoutinePage({
           )}
         </div>
       </div>
+      <div id={`routine-panel-${tab}`} role="tabpanel" aria-labelledby={`routine-tab-${tab}`} tabIndex={0}>
       {tab === 'week' ? (
         <>
           <div className="routine-meta">
             <div>
               <span className="status-dot" />
-              {items.length ? 'No overlapping sections' : 'No sections selected'}
+              {items.length ? `${formatTimeTo12h(stats.earliest!)}–${formatTimeTo12h(stats.latest!)} · ${stats.freeWeekdays} free weekdays` : 'No sections selected'}
             </div>
             <span>
               {stats.meetings} weekly meetings <b>·</b>{' '}
@@ -96,7 +104,16 @@ export function RoutinePage({
             <h1>SectionSync</h1>
             <p>Weekly class routine · {stats.credits} credits</p>
           </div>
-          <WeekCalendar courses={w.courses} selections={w.selectedSections} />
+          <div className="routine-calendar"><WeekCalendar courses={w.courses} selections={w.selectedSections} /></div>
+          {items.length > 0 && <section className="routine-agenda" aria-label="Daily class agenda">
+            {DAYS_OF_WEEK.map((day) => {
+              const classes = items.flatMap(({ course, section }) => section.timeSlots.filter((meeting) => meeting.day === day).map((meeting) => ({ course, section, meeting }))).sort((a, b) => a.meeting.startTime.localeCompare(b.meeting.startTime));
+              return <div key={day}><h2>{day}</h2>{classes.map(({ course, section, meeting }, index) => <article key={`${section.id}-${index}`}>
+                <strong>{formatTimeTo12h(meeting.startTime)}–{formatTimeTo12h(meeting.endTime)}</strong>
+                <h3>{course.code} · Section {label(section)}</h3><p>{course.title}</p><p>{section.faculty}</p><span>Room {meeting.room || 'TBA'}</span>
+              </article>)}{!classes.length && <p>No classes.</p>}</div>;
+            })}
+          </section>}
           {items.length ? (
             <section className="routine-course-list">
               <div className="section-title-line">
@@ -197,6 +214,8 @@ export function RoutinePage({
           </button>
         </div>
       )}
+      </div>
+      <div id={`routine-panel-${tab === 'week' ? 'saved' : 'week'}`} role="tabpanel" aria-labelledby={`routine-tab-${tab === 'week' ? 'saved' : 'week'}`} hidden />
     </>
   );
 }
@@ -219,10 +238,7 @@ export function WeekCalendar({
 }) {
   const items = chosen(courses, selections),
     meetings = items.flatMap((x) => x.section.timeSlots),
-    days = DAYS_OF_WEEK.filter((d, i) => i < 5 || meetings.some((m) => m.day === d)),
-    start =
-      Math.min(8, ...meetings.map((m) => Math.floor(parseTimeToMinutes(m.startTime) / 60))) * 60,
-    end = Math.max(18, ...meetings.map((m) => Math.ceil(parseTimeToMinutes(m.endTime) / 60))) * 60,
+    { days, start, end } = calendarRange(meetings),
     height = (end - start) * 0.9;
   return (
     <div className="week-calendar">

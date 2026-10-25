@@ -1,4 +1,3 @@
-import catalogJson from '../data/catalogs/fall-2026-bscse.json';
 import { Course, Section } from '../types';
 
 export type CatalogSection = Section & {
@@ -27,24 +26,32 @@ export type CourseCatalog = {
   courses: CatalogCourse[];
 };
 
-export const COURSE_CATALOG = catalogJson as unknown as CourseCatalog;
+export const CATALOG_META = { program: 'BSCSE', label: 'Fall 2026', term: 'fall' };
+let pendingCatalog: Promise<CourseCatalog> | undefined;
+let loadedCatalog: CourseCatalog | undefined;
+export function loadCatalog(): Promise<CourseCatalog> {
+  return pendingCatalog ||= import('../data/catalogs/fall-2026-bscse.json').then((module) => {
+    loadedCatalog = module.default as unknown as CourseCatalog;
+    return loadedCatalog;
+  }).catch((error) => { pendingCatalog = undefined; throw error; });
+}
 
 export function normalizeCourseCode(value: string) {
-  return value.trim().toUpperCase().replace(/\s+/g, ' ');
+  return value.trim().toUpperCase().replace(/\s+/g, '').replace(/^([A-Z]+)(\d)/, '$1 $2');
 }
 
 export function findCatalogCourse(code: string) {
   const normalized = normalizeCourseCode(code);
-  return COURSE_CATALOG.courses.find((course) => course.code === normalized);
+  return loadedCatalog?.courses.find((course) => course.code === normalized);
 }
 
 export function suggestCatalogCourses(query: string, limit = 12) {
   const normalized = normalizeCourseCode(query);
-  if (!normalized) return COURSE_CATALOG.courses.slice(0, limit);
-  return COURSE_CATALOG.courses
+  if (!normalized) return loadedCatalog?.courses.slice(0, limit) || [];
+  return (loadedCatalog?.courses || [])
     .filter(
       (course) =>
-        course.code.includes(normalized) || course.title.toUpperCase().includes(normalized),
+        course.code.includes(normalized) || course.title.toUpperCase().includes(query.trim().toUpperCase()),
     )
     .slice(0, limit);
 }

@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  COURSE_CATALOG,
+  loadCatalog,
   findCatalogCourse,
   offeringsForCourse,
   suggestCatalogCourses,
 } from '../src/lib/catalog.ts';
 import { validateCourses } from '../src/lib/workspace.ts';
+const COURSE_CATALOG = await loadCatalog();
 
 test('Fall 2026 BSCSE catalog contains every extracted offering', () => {
   assert.equal(COURSE_CATALOG.id, 'fall-2026-bscse');
@@ -25,6 +26,8 @@ test('Fall 2026 BSCSE catalog contains every extracted offering', () => {
 
 test('catalog lookup returns verified course metadata and faculty schedules', () => {
   const course = findCatalogCourse(' cse   2217 ');
+  assert.equal(findCatalogCourse('CSE2217')?.code, 'CSE 2217');
+  assert.equal(suggestCatalogCourses('cse2217')[0]?.code, 'CSE 2217');
   assert.ok(course);
   assert.equal(course.title, 'Data Structure and Algorithms II');
   assert.equal(course.credits, 3);

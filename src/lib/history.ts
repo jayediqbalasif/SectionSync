@@ -1,8 +1,9 @@
 /** Immutable workspace history; safe to replay under React StrictMode. */
 export type History<T> = { present: T; past: T[]; future: T[] };
-export type HistoryAction<T> = { type: 'change'; next: T } | { type: 'undo' } | { type: 'redo' };
+export type HistoryAction<T> = { type: 'change'; next: T } | { type: 'reset'; next: T } | { type: 'undo' } | { type: 'redo' };
 const LIMIT = 5;
 export function historyReducer<T>(state: History<T>, action: HistoryAction<T>): History<T> {
+  if (action.type === 'reset') return { present: action.next, past: [], future: [] };
   if (action.type === 'change')
     return {
       present: action.next,

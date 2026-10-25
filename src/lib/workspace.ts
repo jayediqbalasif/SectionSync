@@ -72,6 +72,7 @@ export function validateMeetings(value: unknown): asserts value is Section['time
   for (const m of value)
     if (
       !m ||
+      (m.room !== undefined && typeof m.room !== 'string') ||
       !DAYS_OF_WEEK.includes(m.day) ||
       !time.test(m.startTime) ||
       !time.test(m.endTime) ||
@@ -105,6 +106,18 @@ export function validSelections(courses: Course[], value: unknown): Record<strin
         throw new Error('Selected sections overlap. Resolve the conflict before importing.');
   return selected;
 }
+export function sanitizeSelections(courses: Course[], value: unknown) {
+  const selections: Record<string, string> = {};
+  let removed = 0;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return { selections, removed };
+  for (const [courseId, sectionId] of Object.entries(value)) {
+    const section = courses.find((course) => course.id === courseId)?.sections.find((section) => section.id === sectionId);
+    if (!section || findConflicts(courses, selections, courseId, section).length) removed++;
+    else selections[courseId] = section.id;
+  }
+  return { selections, removed };
+}
+
 export function chosen(courses: Course[], selected: Record<string, string>) {
   return courses.flatMap((course) => {
     const section = course.sections.find((s) => s.id === selected[course.id]);
@@ -136,6 +149,9 @@ export function summary(courses: Course[], selected: Record<string, string>) {
       );
   }
   return {
+    earliest: [...days.values()].flat().map((m) => m.startTime).sort()[0],
+    latest: [...days.values()].flat().map((m) => m.endTime).sort().at(-1),
+    freeWeekdays: DAYS_OF_WEEK.slice(0, 5).filter((day) => !days.has(day)).length,
     count: items.length,
     credits: items.reduce((n, x) => n + (x.course.credits ?? 3), 0),
     days: days.size,
@@ -187,4 +203,9 @@ export function download(name: string, text: string, type = 'application/json') 
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function writeWorkspace(storage: Pick<Storage, 'setItem'>, next: Workspace, recoveryRaw: string | null) {
+  if (recoveryRaw !== null) throw new Error('Download the original data or explicitly replace it before saving this workspace.');
+  storage.setItem('sectionsync.workspace.v2', JSON.stringify({ version: '2.0', ...next }));
 }

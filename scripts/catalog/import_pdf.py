@@ -358,7 +358,7 @@ def main() -> None:
     repair_overflowed_columns(rows)
     catalog, report = build_catalog(rows, args.program, args.term, args.year)
     report["populatedPages"] = populated_pages
-    report["pdfPageCount"] = 54
+    report["pdfPageCount"] = len(PdfReader(args.pdf).pages)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + "\n")

@@ -1,17 +1,27 @@
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 
+import { CATALOG_META } from '../lib/catalog';
+import { WeekOccupancy } from './WeekOccupancy';
+import { Course } from '../types';
+
 export function HomePage({
   onPlanner,
   onRoutine,
+  hasWorkspace = false,
+  courses,
+  selections,
 }: {
   onPlanner: () => void;
   onRoutine: () => void;
+  hasWorkspace?: boolean;
+  courses: Course[];
+  selections: Record<string, string>;
 }) {
   return (
     <div className="home-page">
       <section className="home-hero" aria-labelledby="home-title">
         <div>
-          <p className="eyebrow">§ 00 — SECTIONSYNC</p>
+          <p className="eyebrow">{CATALOG_META.label.toUpperCase()} — {CATALOG_META.program}</p>
           <h1 id="home-title">
             A clear week.
             <br />
@@ -22,7 +32,7 @@ export function HomePage({
           </p>
           <div className="home-actions">
             <button className="button primary" onClick={onPlanner}>
-              Open planner <ArrowRight size={16} />
+              {hasWorkspace ? 'Continue planning' : 'Open planner'} <ArrowRight size={16} />
             </button>
             <button className="text-button" onClick={onRoutine}>
               View routine <ArrowUpRight size={15} />
@@ -54,6 +64,7 @@ export function HomePage({
               </div>
             </li>
           </ol>
+          <WeekOccupancy courses={courses} selections={selections} />
           <p className="home-device-note">No account. Saved on your device.</p>
         </aside>
       </section>

@@ -35,10 +35,13 @@ import { HomePage } from './components/HomePage';
 import { FaqPage } from './components/FaqPage';
 import { Dialog } from './components/Dialog';
 import {
-  COURSE_CATALOG,
+  CATALOG_META,
   findCatalogCourse,
   suggestCatalogCourses,
+  normalizeCourseCode,
 } from './lib/catalog';
+
+import { useCatalog } from './hooks/useCatalog';
 
 type Page = 'home' | 'planner' | 'routine' | 'faq';
 type Theme = 'light' | 'dark';
@@ -87,6 +90,11 @@ export default function App() {
   const {
     data: w,
     error,
+    recoveryRaw,
+    removed,
+    externalChange,
+    reloadWorkspace,
+    replaceRecoveredData,
     saved,
     undo,
     redo,
@@ -123,6 +131,16 @@ export default function App() {
     } catch {}
   }, [theme]);
 
+  const previousPage = useRef(page);
+  useEffect(() => {
+    document.title = `${page === 'faq' ? 'FAQ' : page.charAt(0).toUpperCase() + page.slice(1)} · SectionSync`;
+    if (previousPage.current !== page) {
+      const heading = document.querySelector<HTMLElement>('main h1');
+      heading?.setAttribute('tabindex', '-1');
+      heading?.focus({ preventScroll: true });
+    }
+    previousPage.current = page;
+  }, [page]);
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
@@ -158,8 +176,7 @@ export default function App() {
 
       if ((e.metaKey || e.ctrlKey) && key === 's') {
         e.preventDefault();
-        save();
-        notify('Workspace saved on this device.');
+        if (save()) notify('Workspace saved on this device.');
       } else if (!isInput && (e.metaKey || e.ctrlKey) && key === 'z' && !e.shiftKey) {
         e.preventDefault();
         if (undo) {
@@ -243,6 +260,7 @@ export default function App() {
   }
   function saveSection(c: Course, s: Section) {
     const isEdit = c.sections.some((x) => x.id === s.id);
+    const clashes = w.selectedSections[c.id] === s.id ? findConflicts(w.courses, w.selectedSections, c.id, s) : [];
     change((d) => {
       const course = d.courses.find((x) => x.id === c.id)!;
       const others = course.sections
@@ -255,7 +273,7 @@ export default function App() {
         if (clashes.length) delete d.selectedSections[c.id];
       }
     });
-    notify(isEdit ? 'Section updated.' : 'Section added.');
+    notify(clashes.length ? `Section updated. It overlaps ${clashes.map((x) => x.course.code).join(', ')}, so it was deselected.` : isEdit ? 'Section updated.' : 'Section added.');
   }
   const safe = (action: () => void) => {
     try {
@@ -266,7 +284,7 @@ export default function App() {
   };
   return (
     <div className="app">
-      <a href="#main" className="skip-link">
+      <a href="#main" className="skip-link" onClick={(event) => { event.preventDefault(); document.getElementById('main')?.focus(); }}>
         Skip to content
       </a>
       <header className="site-header">
@@ -281,7 +299,7 @@ export default function App() {
           <span className="brand-symbol">
             <Layers size={19} strokeWidth={1.7} />
           </span>
-          SectionSync<span className="brand-period">.</span>
+          <span className="brand-wordmark">SectionSync.</span>
         </a>
         <nav className="header-nav" aria-label="Main navigation">
           {(['home', 'planner', 'routine', 'faq'] as Page[]).map((item, index) => (
@@ -295,7 +313,7 @@ export default function App() {
                 navigate(item);
               }}
             >
-              <span>[ 0{index} ]</span>{' '}
+              <span aria-hidden="true">[ 0{index} ]</span>{' '}
               {item === 'faq' ? 'FAQ' : item.charAt(0).toUpperCase() + item.slice(1)}
             </a>
           ))}
@@ -351,19 +369,24 @@ export default function App() {
         </div>
       </header>
       <div className="main-shell">
-        <main id="main">
+        <main id="main" tabIndex={-1}>
+          {externalChange && <div className="notice" role="status">This workspace changed in another tab. <button className="text-button" onClick={reloadWorkspace}>Reload workspace</button></div>}
+          {removed > 0 && <div className="notice" role="status">{removed} {removed === 1 ? 'selection was' : 'selections were'} removed because their sections no longer exist or overlap.</div>}
           {error && (
             <div role="alert" className="notice error">
               {error}
-              <button className="text-button" onClick={save}>
+              {recoveryRaw !== null ? <>
+                <button className="text-button" onClick={() => download('sectionsync-original-data.txt', recoveryRaw, 'text/plain')}>Download original data</button>
+                <button className="text-button" onClick={() => setConfirm({ title: 'Replace unreadable workspace?', body: 'This replaces the original browser data with the current workspace. Download the original data first if you need to recover it.', label: 'Replace original data', action: replaceRecoveredData })}>Use current workspace</button>
+              </> : <button className="text-button" onClick={save}>
                 Retry save
-              </button>
+              </button>}
             </div>
           )}
           {page === 'faq' ? (
             <FaqPage />
           ) : page === 'home' ? (
-            <HomePage onPlanner={() => navigate('planner')} onRoutine={() => navigate('routine')} />
+            <HomePage courses={w.courses} selections={w.selectedSections} hasWorkspace={w.courses.some((course) => course.catalogId) || Object.keys(w.selectedSections).length > 0} onPlanner={() => navigate('planner')} onRoutine={() => navigate('routine')} />
           ) : page === 'planner' ? (
             <PlannerPage
               workspace={w}
@@ -494,7 +517,7 @@ export default function App() {
           onClose={() => setCourseEdit(null)}
           onSave={(c) => {
             if (
-              w.courses.some((x) => x.id !== c.id && x.code.toLowerCase() === c.code.toLowerCase())
+              w.courses.some((x) => x.id !== c.id && normalizeCourseCode(x.code) === normalizeCourseCode(c.code))
             )
               throw new Error('A course with that code already exists.');
             change((d) => {
@@ -636,8 +659,7 @@ export default function App() {
           <section className="help-section">
             <h3>Keyboard & controls</h3>
             <p>
-              Use the arrow controls under each section to change priorities. Drag sections within a
-              course for the same result. Press ⌘S or Ctrl+S to save manually.
+              Drag sections within a course to change priorities, or focus a section and press Alt + Up / Down. Press ⌘S or Ctrl+S to save manually.
             </p>
           </section>
         </Dialog>
@@ -672,6 +694,7 @@ function CourseDialog({
     [credits, setCredits] = useState(course?.credits === undefined ? '' : String(course.credits)),
     [kind, setKind] = useState(course?.kind || 'theory'),
     [error, setError] = useState('');
+  const catalog = useCatalog();
   const catalogMatch = findCatalogCourse(code);
   const suggestions = suggestCatalogCourses(code);
   const updateCode = (value: string) => {
@@ -697,7 +720,7 @@ function CourseDialog({
               validateCourses([
                 {
                   id: course?.id || crypto.randomUUID(),
-                  code: code.trim().toUpperCase(),
+                  code: normalizeCourseCode(code),
                   title: title.trim(),
                   credits: Number(credits),
                   kind,
@@ -719,6 +742,7 @@ function CourseDialog({
             <input
               autoFocus
               required
+              disabled={catalog.loading}
               maxLength={40}
               placeholder="CSE 2217"
               list="fall-2026-course-codes"
@@ -733,11 +757,11 @@ function CourseDialog({
               ))}
             </datalist>
             <span className={`field-hint ${catalogMatch ? 'matched' : ''}`}>
-              {catalogMatch
-                ? `${COURSE_CATALOG.label} catalog · ${catalogMatch.sections.length} sections`
+              {catalog.loading ? 'Loading course catalog…' : catalog.error ? catalog.error : catalogMatch
+                ? `${CATALOG_META.label} catalog · ${catalogMatch.sections.length} sections`
                 : code.trim()
                   ? 'Not in the catalog · this will be a custom course'
-                  : `Search ${COURSE_CATALOG.label} by course code`}
+                  : `Search ${CATALOG_META.label} by course code`}
             </span>
           </label>
           <label>
